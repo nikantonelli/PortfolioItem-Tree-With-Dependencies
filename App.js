@@ -113,8 +113,8 @@ Ext.define('PortfolioItemTree', {
 //        g = svg.append("g")        .attr("transform","translate(10,10)");
         g = svg.append("g")        .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
         //For the size, the tree is rotated 90degrees. Height is for top node to deepest child
-        var tree = d3.tree()
-            .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + gApp.LEFT_MARGIN_SIZE)])     //Take off a chunk for the text??
+        var tree = d3.cluster()
+            .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
 //            .size([viewBoxSize[1]-gApp.LEFT_MARGIN_SIZE, viewBoxSize[0] - columnWidth])     //Take off a chunk for the text??
             .separation( function(a,b) {
                     return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
@@ -303,6 +303,8 @@ Ext.define('PortfolioItemTree', {
             fieldLabel: 'Choose Start Item :',
             itemId: 'itemSelector',
             labelWidth: 100,
+            queryMode: 'remote',
+            pageSize: 25,
             width: 600,
             margin: '5 0 5 20',
             storeConfig: {
