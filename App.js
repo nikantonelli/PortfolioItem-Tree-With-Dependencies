@@ -1,8 +1,23 @@
 Ext.define('PortfolioItemTree', {
     extend: 'Rally.app.App',
     componentCls: 'app',
+    config: {
+        defaultSettings: {
+            keepTypesAligned: true
+        }
+    },
+    getSettingsFields: function() {
+        var returned = [
+        {
+            name: 'keepTypesAligned',
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Columnised Types',
+            labelAlign: 'top'
+        }];
+        return returned;
+    },
     itemId: 'rallyApp',
-        MIN_COLUMN_WIDTH:   300,        //Looks silly on less than this
+        MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
         MIN_ROW_HEIGHT: 20 ,                 //A cards minimum height is 80, so add a bit
         LOAD_STORE_MAX_RECORDS: 100, //Can blow up the Rally.data.wsapi.filter.Or
         WARN_STORE_MAX_RECORDS: 300, //Can be slow if you fetch too many
@@ -37,7 +52,8 @@ Ext.define('PortfolioItemTree', {
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
-                'c_RAGStatus'
+                'c_RAGStatus',
+                'c_ProgressUpdate'
             ],
         CARD_DISPLAY_FIELD_LIST:
             [
@@ -82,9 +98,7 @@ Ext.define('PortfolioItemTree', {
     _enterMainApp: function() {
 
         gApp._initialiseD3();
-    console.log('Enter main app');
         //Get all the nodes and the "Unknown" parent virtual nodes
-//        gApp._nodes = gApp._nodes.concat(gApp._createMyNodes());
         var nodetree = gApp._createTree(gApp._nodes);
 
         //It is hard to calculate the exact size of the tree so we will guess here
@@ -110,16 +124,24 @@ Ext.define('PortfolioItemTree', {
         svg.attr('viewBox', '0 0 ' + viewBoxSize[0] + ' ' + (viewBoxSize[1]+ gApp.NODE_CIRCLE_SIZE));
 
         gApp._nodeTree = nodetree;      //Save for later
-//        g = svg.append("g")        .attr("transform","translate(10,10)");
         g = svg.append("g")        .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
         //For the size, the tree is rotated 90degrees. Height is for top node to deepest child
-        var tree = d3.cluster()
-            .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
-//            .size([viewBoxSize[1]-gApp.LEFT_MARGIN_SIZE, viewBoxSize[0] - columnWidth])     //Take off a chunk for the text??
-            .separation( function(a,b) {
-                    return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
-                }
-            );
+        if (this.getSetting('keepTypesAligned')) {
+            var tree = d3.tree()
+                .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
+                .separation( function(a,b) {
+                        return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
+                    }
+                );
+        }
+        else {
+            var tree = d3.cluster()
+                .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
+                .separation( function(a,b) {
+                        return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
+                    }
+                );
+        }
         tree(nodetree);
         gApp.tree = tree;
         gApp._refreshTree();
@@ -177,7 +199,7 @@ Ext.define('PortfolioItemTree', {
               .text(function(d) {  return d.children?d.data.Name : d.data.Name + ' ' + (d.data.record && d.data.record.data.Name); });
 
         //Now put in, but hide, all the dependency links
-        node.addPredecessors(g.selectAll("circle"));
+//        node.addPredecessors(g.selectAll("circle"));
 //        node.addSuccessors();
     },
 
@@ -220,39 +242,105 @@ Ext.define('PortfolioItemTree', {
             draggable: true,
             closable: true,
             width: 600,
+            record: node.data.record,
+            model: model,
+            field: field,
             title: 'Information for ' + node.data.record.get('FormattedID') + ': ' + node.data.record.get('Name'),
-            items: [
-                {
-                        xtype: 'rallycard',
-                        record: node.data.record,
-                        fields: gApp.CARD_DISPLAY_FIELD_LIST,
-                        showAge: true,
-                        resizable: true
-                },
-                {
-                xtype: 'rallypopoverchilditemslistview',
-                target: array[index],
-                record: node.data.record,
-                childField: field,
-                addNewConfig: null,
-                gridConfig: {
-                    title: 'Children of ' + node.data.record.data.FormattedID,
-                    enableEditing: false,
-                    enableRanking: false,
-                    enableBulkEdit: false,
-                    showRowActionsClumn: false,
-                    columnCfgs : [
-                        'FormattedID',
-                        'Name',
-//                        'Owner',
-                        'PercentDoneByStoryCount',
-                        'PercentDoneByStoryPlanEstimate',
-                        'State',
-                        'c_RAGSatus'
-                    ]
-                },
-                model: model
-            }]
+//            items: [
+//                {
+//                        xtype: 'rallycard',
+//                        record: node.data.record,
+//                        fields: gApp.CARD_DISPLAY_FIELD_LIST,
+//                        showAge: true,
+//                        resizable: true
+//                },
+//                {
+//                    xtype: 'text',
+//                    text: 'Last Weekly Update Entry: '
+//                },
+//                {
+//                    xtype: 'rallytextfield',
+//                    readOnly: true,
+//                    blankText: 'No Update Available',
+//                    autoScroll: true,
+//                    width:600,
+//                    height: 200,
+//                    value: node.data.record.get('c_ProgressUpdate')
+//                },
+//                {
+//                    xtype: 'rallypopoverchilditemslistview',
+//                    target: array[index],
+//                    record: node.data.record,
+//                    childField: field,
+//                    addNewConfig: null,
+//                    gridConfig: {
+//                        title: 'Children of ' + node.data.record.data.FormattedID,
+//                        enableEditing: false,
+//                        enableRanking: false,
+//                        enableBulkEdit: false,
+//                        showRowActionsClumn: false,
+//                        columnCfgs : [
+//                            'FormattedID',
+//                            'Name',
+//    //                        'Owner',
+//                            'PercentDoneByStoryCount',
+//                            'PercentDoneByStoryPlanEstimate',
+//                            'State',
+//                            'c_RAGSatus'
+//                        ]
+//                    },
+//                    model: model
+//                }
+//            ],
+            listeners: {
+                afterrender: function() {
+                    this.add(
+                        {
+                                xtype: 'rallycard',
+                                record: this.record,
+                                fields: gApp.CARD_DISPLAY_FIELD_LIST,
+                                showAge: true,
+                                resizable: true
+                        },
+                        {
+                            xtype: 'text',
+                            text: 'Last Weekly Update Entry: ',
+                            margin: '0 0 10 0'
+                        },
+                        {
+                            xtype: 'component',
+                            width:this.width,
+                            autoScroll: true,
+                            maxHeight: 80,
+                            html: this.record.get('c_ProgressUpdate')
+                        },
+                        {
+                        xtype: 'rallypopoverchilditemslistview',
+                        target: array[index],
+                        record: this.record,
+                        childField: this.field,
+                        addNewConfig: null,
+                        gridConfig: {
+                            title: 'Children of ' + this.record.data.FormattedID,
+                            enableEditing: false,
+                            enableRanking: false,
+                            enableBulkEdit: false,
+                            showRowActionsClumn: false,
+                            columnCfgs : [
+                                'FormattedID',
+                                'Name',
+        //                        'Owner',
+                                'PercentDoneByStoryCount',
+                                'PercentDoneByStoryPlanEstimate',
+                                'State',
+                                'c_RAGSatus',
+                                'ScheduleState'
+                            ]
+                        },
+                        model: this.model
+                    });
+                }
+            }
         });
     },
 
@@ -324,18 +412,16 @@ Ext.define('PortfolioItemTree', {
 
 
     _getArtifacts: function(data) {
-    console.log('getArtifacts', data);
         //On re-entry send an event to redraw
 
         gApp._nodes = gApp._nodes.concat( gApp._createNodes(data));    //Add what we started with to the node list
-console.log ( 'Nodes now : ', gApp._nodes);
+
         this.fireEvent('redrawTree');
         //Starting with highest selected by the combobox, go down
 
         //TODO: at the moment we allow a single select via the combox. If this goes to be a multi-select, then we need to batch up the promises
 
         _.each(data, function(record) {
-            console.log('Fetching for ',record);
             if (record.get('Children')){                                //Limit this to feature level and not beyond.
                 record.getCollection( 'Children').load({
                     fetch: gApp.STORE_FETCH_FIELD_LIST,
@@ -346,12 +432,6 @@ console.log ( 'Nodes now : ', gApp._nodes);
                 });
             }
         });
-    },
-
-    _loadChildren: function(data) {
-        debugger;
-        console.log('_loadChildren: ', data);
-        gApp._nodes = gApp._nodes.concat(gApp._createNodes(data));
     },
 
     _createNodes: function(data) {
@@ -481,7 +561,7 @@ console.log ( 'Nodes now : ', gApp._nodes);
                     record.getCollection('Predecessors').load().then({
                         success: function(preds) {
                             _.each(preds, function(pred){
-                            debugger;
+//                            debugger;
                                 var pn = _.find(nodes.nodes, function(d) {
                                     return d.data.record && (d.data.record.data._ref === pred.get('_ref'));
                                 });
@@ -497,7 +577,7 @@ console.log ( 'Nodes now : ', gApp._nodes);
                             });
                         },
                         failure: function(error) {
-                            debugger;
+//                            debugger;
                         }
                     });
                 }
@@ -505,7 +585,7 @@ console.log ( 'Nodes now : ', gApp._nodes);
         }
         d3.selection.prototype.addSuccessors = function  () {
             return this.each(function(node, index, array) {
-                debugger;
+//                debugger;
             });
         }
     }

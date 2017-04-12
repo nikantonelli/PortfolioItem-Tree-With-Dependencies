@@ -1,6 +1,6 @@
 
 .node text {
-  font: 10px sans-serif;
+  font: 14px sans-serif;
 }
 
 .info--box text {
@@ -40,7 +40,7 @@
 }
 .no--errors  {
   fill: #0f0;
-  stroke: #111;
+  stroke: #00f;
   stroke-width: 2px;
 }
 .no--errors--done {
@@ -55,6 +55,6 @@
 }
 .no--errors--in--progress {
   fill: #0f0;
-  stroke: #111;
+  stroke: #00f;
   stroke-width: 2px;
 }
