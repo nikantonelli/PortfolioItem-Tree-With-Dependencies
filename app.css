@@ -1,0 +1,60 @@
+
+.node text {
+  font: 10px sans-serif;
+}
+
+.info--box text {
+    font-size: 14px;
+    font-family: "ProximaNovaSemiBold,Helvetica,Arial"
+}
+.node--internal text {
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+}
+.local--link {
+  fill: none;
+  stroke: #111;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+.remote--link {
+  fill: none;
+  stroke: #ddd;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+.invisible--link {
+  fill: none;
+  stroke: #ddd;
+  stroke-opacity: 0.0;
+  stroke-width: 1.5px;
+}
+
+.predecessor--link {
+  fill: dashed;
+  stroke: lightblue;
+  stroke-opacity: 0.5;
+  stroke-width: 3px;
+}
+.error--node  {
+  fill: #f00;
+}
+.no--errors  {
+  fill: #0f0;
+  stroke: #111;
+  stroke-width: 2px;
+}
+.no--errors--done {
+  fill: #000;
+  stroke: #111;
+  stroke-width: 2px;
+}
+.no--errors--not--started {
+  fill: #00ffff;
+  stroke: #111;
+  stroke-width: 2px;
+}
+.no--errors--in--progress {
+  fill: #0f0;
+  stroke: #111;
+  stroke-width: 2px;
+}

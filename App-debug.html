@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Portfolio Item Tree</title>
+
+
+    <script type="text/javascript" src="https://rally1.rallydev.com/apps/2.1/sdk-debug.js"></script>
+
+    <script type="text/javascript">
+        Rally.loadScripts(
+                [
+                      "App.js",
+                      "d3.js",
+                      "Proxy/BatchProxy.js",
+                ],
+        function() {
+            Rally.launchApp('PortfolioItemTree', {
+                name:"My Portfolio Item Tree"
+            });
+        }, true);
+    </script>
+
+
+    <link rel="stylesheet" type="text/css" href="app.css"/>
+</head>
+<body>
+</body>
+</html>

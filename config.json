@@ -1,0 +1,14 @@
+{
+    "name": "My Portfolio Item Tree",
+    "className": "PortfolioItemTree",
+    "server": "https://rally1.rallydev.com",
+    "sdk": "2.1",
+    "javascript": [
+        "App.js",
+        "d3.js",
+        "Proxy/BatchProxy.js"
+    ],
+    "css": [
+        "app.css"
+    ]
+}
