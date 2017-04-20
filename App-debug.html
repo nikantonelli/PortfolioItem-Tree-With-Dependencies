@@ -10,13 +10,13 @@
         Rally.loadScripts(
                 [
                       "App.js",
-                      "d3.js",
+                      "DateMixin.js",
                       "CFDChart.js",
                       "CFDCalc.js",
-                      "DateMixin.js",
+                      "d3.js",
                 ],
         function() {
-            Rally.launchApp('PortfolioItemTree', {
+            Rally.launchApp('Rally.apps.PortfolioItemTree.app', {
                 name:"My Portfolio Item Tree"
             });
         }, true);

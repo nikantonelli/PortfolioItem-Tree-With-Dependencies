@@ -1,3 +1,6 @@
+(function () {
+    var Ext = window.Ext4 || window.Ext;
+
 Ext.define("Rally.apps.charts.rpm.cfd.CumulativeFlowCalculator", {
     extend: "Rally.data.lookback.calculator.TimeSeriesCalculator",
 
@@ -37,3 +40,4 @@ Ext.define("Rally.apps.charts.rpm.cfd.CumulativeFlowCalculator", {
         });
     }
 });
+}());

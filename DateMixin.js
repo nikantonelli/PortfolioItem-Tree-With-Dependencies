@@ -1,7 +1,7 @@
 (function () {
     var Ext = window.Ext4 || window.Ext;
 
-    Ext.define("DateMixin", {
+    Ext.define("Rally.apps.DateMixin", {
 
         dateFormatters: [
             {key: "MMM", value: "%b"},

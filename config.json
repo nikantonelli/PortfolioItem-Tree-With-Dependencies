@@ -1,14 +1,14 @@
 {
     "name": "My Portfolio Item Tree",
-    "className": "PortfolioItemTree",
+    "className": "Rally.apps.PortfolioItemTree.app",
     "server": "https://rally1.rallydev.com",
     "sdk": "2.1",
     "javascript": [
         "App.js",
-        "d3.js",
+        "DateMixin.js",
         "CFDChart.js",
         "CFDCalc.js",
-        "DateMixin.js"
+        "d3.js"
     ],
     "css": [
         "app.css"

@@ -1,4 +1,7 @@
-Ext.define('PortfolioItemTree', {
+(function () {
+    var Ext = window.Ext4 || window.Ext;
+
+Ext.define('Rally.apps.PortfolioItemTree.app', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     config: {
@@ -343,7 +346,7 @@ Ext.define('PortfolioItemTree', {
                                 enableEditing: false,
                                 enableRanking: false,
                                 enableBulkEdit: false,
-                                showRowActionsClumn: false,
+                                showRowActionsColumn: false,
                                 storeConfig: this.nonRAIDStoreConfig(),
                                 columnCfgs : [
                                     'FormattedID',
@@ -389,7 +392,7 @@ Ext.define('PortfolioItemTree', {
                             }
                         );
                     }
-                    var cfd = new CFDChart( {
+                    var cfd = Ext.create('Rally.apps.CFDChart', {
                         record: this.record,
                         container: this.down('#rightCol')
                     });
@@ -684,3 +687,4 @@ Ext.define('PortfolioItemTree', {
         };
     }
 });
+}());

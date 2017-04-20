@@ -1,4 +1,7 @@
-Ext.define("CFDChart", {
+(function () {
+    var Ext = window.Ext4 || window.Ext;
+
+Ext.define("Rally.apps.CFDChart", {
     extend: "Ext.Component",
     settingsScope: "workspace",
     projectScopeable: false,
@@ -19,10 +22,10 @@ Ext.define("CFDChart", {
         'Deft.Deferred'
     ],
 
-    mixins: [
-        'DateMixin'
-    ],
-
+//    mixins: [
+//        'DateMixin'
+//    ],
+//
     scheduleStates: ["Defined", "In-Progress", "Completed", "Accepted"],
 
     items: [
@@ -84,7 +87,29 @@ Ext.define("CFDChart", {
         if (!startDate) {
             startDate = sixMonthsAgo;
         }
-        return this.dateToString(startDate);
+        return Ext.Date.format(startDate, 'Y-m-d\\TH:i:s.u\\Z');
+    },
+
+    dateFormatters: [
+        {key: "MMM", value: "%b"},
+        {key: "MM", value: "%m"},
+        {key: "dd", value: "%d"},
+        {key: "yyyy", value: "%Y"}
+    ],
+
+    _getMonth: function(month) {
+        var monthMap = { jan: 0, feb: 1, mar: 2, apr: 3,
+                         may: 4, jun: 5, jul: 6, aug: 7,
+                         sep: 8, oct: 9, nov: 10, dec: 11 };
+        if(isNaN(month)) {
+            try {
+                month = monthMap[month.toLowerCase()];
+            } catch(err) { }
+        } else {
+            month = parseInt(month, 10) - 1;
+        }
+
+        return month.toString();
     },
 
     _getChartEndDate: function (portfolioitem) {
@@ -97,7 +122,7 @@ Ext.define("CFDChart", {
         } else {
             if (!endDate) endDate = todaysDate;
         }
-        return this.dateToString(endDate);
+        return Ext.Date.format(endDate, 'Y-m-d\\TH:i:s.u\\Z');
     },
 
     _calculateDateRange: function (portfolioItem) {
@@ -107,6 +132,71 @@ Ext.define("CFDChart", {
         calcConfig.timeZone = calcConfig.timeZone || this._getTimeZone();
 
         this.chartComponentConfig.chartConfig.xAxis.tickInterval = this._configureChartTicks(calcConfig.startDate, calcConfig.endDate);
+    },
+_objectFromYearFirstDate: function (dateArray) {
+            var month = 0,
+                day = 0,
+                year = 0;
+
+            if (dateArray.length !== 3) {
+                return { year: year, month: month, day: day };
+            }
+
+            year = dateArray[0];
+            month = this._getMonth(dateArray[1]);
+            day = dateArray[2];
+
+            return {
+                year: year,
+                month: month,
+                day: day
+            };
+        },
+
+        _objectFromMonthFirstDate: function (dateArray) {
+            var month = 0,
+                day = 0,
+                year = 0;
+
+            if (dateArray.length !== 3) {
+                return { year: year, month: month, day: day };
+            }
+
+            month = this._getMonth(dateArray[0]);
+            day = dateArray[1];
+            year = dateArray[2];
+
+            return {
+                month: month,
+                day: day,
+                year: year
+            };
+        },
+
+    _shouldSplitOnDash: function (dateStr) {
+        return dateStr.split('-').length === 3;
+    },
+
+    _splitDateParts: function (dateStr) {
+        if (this._shouldSplitOnDash(dateStr)) {
+            return this._objectFromYearFirstDate(dateStr.split('-'));
+        }
+        else {
+            return this._objectFromMonthFirstDate(dateStr.split('/'));
+        }
+    },
+
+    dateStringToObject: function (dateStr) {
+        var finalIndex = dateStr.indexOf('T'),
+            dateObj;
+
+        if (finalIndex > -1) {
+            dateStr = dateStr.slice(0, dateStr.indexOf('T'));
+        }
+
+        dateObj = this._splitDateParts(dateStr);
+
+        return new Date(dateObj.year, dateObj.month, dateObj.day);
     },
 
     _configureChartTicks: function (startDate, endDate) {
@@ -154,6 +244,11 @@ Ext.define("CFDChart", {
 
     _updateQueryConfig: function (portfolioItem) {
         this.chartComponentConfig.storeConfig.find._ItemHierarchy = portfolioItem.ObjectID;
+        this.chartComponentConfig.storeConfig.find._ValidFrom = {
+            "$gte": this._getChartStartDate(portfolioItem),
+            "$lt" : this._getChartEndDate(portfolioItem)
+        };
+//        this.chartComponentConfig.storeConfig.find._ValidTo = this._getChartEndDate(portfolioItem);
     },
 
     _onUserStoryModelRetrieved: function (model, portfolioItem) {
@@ -319,3 +414,4 @@ Ext.define("CFDChart", {
         });
      }
 });
+}());
