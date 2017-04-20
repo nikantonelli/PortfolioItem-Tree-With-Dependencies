@@ -126,8 +126,9 @@ Ext.define('PortfolioItemTree', {
         gApp._nodeTree = nodetree;      //Save for later
         g = svg.append("g")        .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
         //For the size, the tree is rotated 90degrees. Height is for top node to deepest child
+        var tree = null;
         if (this.getSetting('keepTypesAligned')) {
-            var tree = d3.tree()
+            tree = d3.tree()
                 .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
                 .separation( function(a,b) {
                         return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
@@ -135,7 +136,7 @@ Ext.define('PortfolioItemTree', {
                 );
         }
         else {
-            var tree = d3.cluster()
+             tree = d3.cluster()
                 .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
                 .separation( function(a,b) {
                         return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
@@ -185,9 +186,9 @@ Ext.define('PortfolioItemTree', {
                     return d.data.error ? "error--node": "no--errors--done";
                 }
             })
-            .on("click", function(node, index, array) { gApp._nodeClick(node,index,array)})
-            .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array)})
-            .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array)});
+            .on("click", function(node, index, array) { gApp._nodeClick(node,index,array);})
+            .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
+            .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);});
 
         node.append("text")
               .attr("dy", 3)
@@ -234,18 +235,35 @@ Ext.define('PortfolioItemTree', {
     _nodeClick: function (node,index,array) {
         if (!(node.data.record.data.ObjectID)) return; //Only exists on real items
         //Get ordinal (or something ) to indicate we are the lowest level, then use "UserStories" instead of "Children"
-        var field = node.data.record.data.Children? 'Children' : 'UserStories';
-        var model = node.data.record.data.Children? node.data.record.data.Children._type : 'UserStory';
+        var field = node.data.record.hasField('Children')? 'Children' : 'UserStories';
+        var model = node.data.record.hasField('Children')? node.data.record.data.Children._type : 'UserStory';
 
         Ext.create('Rally.ui.dialog.Dialog', {
             autoShow: true,
             draggable: true,
             closable: true,
-            width: 600,
+            width: 1200,
+            height: 800,
             record: node.data.record,
+            disableScroll: false,
             model: model,
             field: field,
             title: 'Information for ' + node.data.record.get('FormattedID') + ': ' + node.data.record.get('Name'),
+            layout: 'hbox',
+            items: [
+                {
+                    xtype: 'container',
+                    itemId: 'leftCol',
+                    width: 600,
+                    overflowY: 'scroll',
+                    overflowX: 'none'
+                },
+                {
+                    xtype: 'container',
+                    itemId: 'rightCol',
+                    width: '50%'
+                }
+            ],
 //            items: [
 //                {
 //                        xtype: 'rallycard',
@@ -294,7 +312,7 @@ Ext.define('PortfolioItemTree', {
 //            ],
             listeners: {
                 afterrender: function() {
-                    this.add(
+                    this.down('#leftCol').add(
                         {
                                 xtype: 'rallycard',
                                 record: this.record,
@@ -315,33 +333,111 @@ Ext.define('PortfolioItemTree', {
                             html: this.record.get('c_ProgressUpdate')
                         },
                         {
-                        xtype: 'rallypopoverchilditemslistview',
-                        target: array[index],
+                            xtype: 'rallypopoverchilditemslistview',
+                            target: array[index],
+                            record: this.record,
+                            childField: this.field,
+                            addNewConfig: null,
+                            gridConfig: {
+                                title: 'Children of ' + this.record.data.FormattedID,
+                                enableEditing: false,
+                                enableRanking: false,
+                                enableBulkEdit: false,
+                                showRowActionsClumn: false,
+                                storeConfig: this.nonRAIDStoreConfig(),
+                                columnCfgs : [
+                                    'FormattedID',
+                                    'Name',
+            //                        'Owner',
+                                    'PercentDoneByStoryCount',
+                                    'PercentDoneByStoryPlanEstimate',
+                                    'State',
+                                    'c_RAGSatus',
+                                    'ScheduleState'
+                                ]
+                            },
+                            model: this.model
+                        }
+                    );
+
+                    //This is specific to Barclays. Features are used as RAIDs as well.
+                    if (this.record.self.ordinal === 1) {
+                        this.down('#leftCol').add(
+                            {
+                                xtype: 'rallypopoverchilditemslistview',
+                                target: array[index],
+                                record: this.record,
+                                childField: this.field,
+                                addNewConfig: null,
+                                gridConfig: {
+                                    title: 'Important RAIDS of ' + this.record.data.FormattedID,
+                                    enableEditing: false,
+                                    enableRanking: false,
+                                    enableBulkEdit: false,
+                                    showRowActionsColumn: false,
+                                    storeConfig: this.RAIDStoreConfig(),
+                                    columnCfgs : [
+                                        'FormattedID',
+                                        'Name',
+                                        'c_RAIDType',
+                                        'State',
+                                        'c_RAGStatus',
+                                        'ScheduleState'
+                                    ]
+                                },
+                                model: this.model
+                            }
+                        );
+                    }
+                    var cfd = new CFDChart( {
                         record: this.record,
-                        childField: this.field,
-                        addNewConfig: null,
-                        gridConfig: {
-                            title: 'Children of ' + this.record.data.FormattedID,
-                            enableEditing: false,
-                            enableRanking: false,
-                            enableBulkEdit: false,
-                            showRowActionsClumn: false,
-                            columnCfgs : [
-                                'FormattedID',
-                                'Name',
-        //                        'Owner',
-                                'PercentDoneByStoryCount',
-                                'PercentDoneByStoryPlanEstimate',
-                                'State',
-                                'c_RAGSatus',
-                                'ScheduleState'
-                            ]
-                        },
-                        model: this.model
+                        container: this.down('#rightCol')
                     });
+//                    this.down('#rightCol').add( cfd );
+                    cfd.generateChart();
                 }
-            }
-        });
+            },
+
+            //This is specific to Barclays. Features are used as RAIDs as well.
+            nonRAIDStoreConfig: function() {
+                if (this.record.hasField('c_RAIDType') ){
+                    switch (this.record.self.ordinal) {
+                        case 1:
+                            return  {
+                                filters: {
+                                    property: 'c_RAIDType',
+                                    operator: '=',
+                                    value: ''
+                                }
+                            };
+                        default:
+                            return {};
+                    }
+                }
+                else return {};
+            },
+
+            //This is specific to Barclays. Features are used as RAIDs as well.
+            RAIDStoreConfig: function() {
+                var retval = {};
+
+                if (this.record.hasField('c_RAIDType') && this.record.hasField('c_RAGStatus')){
+                            return {
+                                filters: [{
+                                    property: 'c_RAIDType',
+                                    operator: '!=',
+                                    value: ''
+                                },
+                                {
+                                    property: 'c_RAGStatus',
+                                    operator: '=',
+                                    value: 'RED'
+                                }]
+                            };
+                    }
+                    else return {};
+                }
+            });
     },
 
     //Entry point after creation of render box
@@ -561,7 +657,6 @@ Ext.define('PortfolioItemTree', {
                     record.getCollection('Predecessors').load().then({
                         success: function(preds) {
                             _.each(preds, function(pred){
-//                            debugger;
                                 var pn = _.find(nodes.nodes, function(d) {
                                     return d.data.record && (d.data.record.data._ref === pred.get('_ref'));
                                 });
@@ -569,10 +664,9 @@ Ext.define('PortfolioItemTree', {
                                     .attr("class", "predecessor--link")
                                     .attr("d", function(d) {
                                         return "M" + d.y + "," + d.x
-                                            + "C" + (node.y + 100) + "," + d.x
-                                            + " " + (node.y + 100) + "," + node.x
+                                            + "S" + (d.y - 100) + "," + d.x + ((d.x - node.x)/2)
                                             + " " + node.y + "," + node.x;
-                                })
+                                });
 
                             });
                         },
@@ -582,11 +676,11 @@ Ext.define('PortfolioItemTree', {
                     });
                 }
             });
-        }
+        };
         d3.selection.prototype.addSuccessors = function  () {
             return this.each(function(node, index, array) {
 //                debugger;
             });
-        }
+        };
     }
 });

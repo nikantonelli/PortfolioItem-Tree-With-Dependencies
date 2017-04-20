@@ -6,7 +6,9 @@
     "javascript": [
         "App.js",
         "d3.js",
-        "Proxy/BatchProxy.js"
+        "CFDChart.js",
+        "CFDCalc.js",
+        "DateMixin.js"
     ],
     "css": [
         "app.css"
