@@ -21,10 +21,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
     itemId: 'rallyApp',
         MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
-        MIN_ROW_HEIGHT: 20 ,                 //A cards minimum height is 80, so add a bit
+        MIN_ROW_HEIGHT: 20 ,                 //
         LOAD_STORE_MAX_RECORDS: 100, //Can blow up the Rally.data.wsapi.filter.Or
         WARN_STORE_MAX_RECORDS: 300, //Can be slow if you fetch too many
-        NODE_CIRCLE_SIZE: 5,                //Pixel radius of dots
+        NODE_CIRCLE_SIZE: 8,                //Pixel radius of dots
         LEFT_MARGIN_SIZE: 100,               //Leave space for "World view" text
         STORE_FETCH_FIELD_LIST:
             [
@@ -52,6 +52,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'Notes',
                 'Predecessors',
                 'Successors',
+                'OrderIndex',   //Used to get the State field order index
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
@@ -107,7 +108,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         //It is hard to calculate the exact size of the tree so we will guess here
         //When we try to use a 'card' we will need the size of the card
 
-        var numColumns = (gApp._highestOrdinal()+1); //Leave extras for offset at left and text at right
+        var numColumns = gApp._getSelectedOrdinal()+1; //Leave extras for offset at left and text at right??
         var columnWidth = this.getSize().width/numColumns;
         columnWidth = columnWidth > gApp.MIN_COLUMN_WIDTH ? columnWidth : gApp.MIN_COLUMN_WIDTH;
         treeboxHeight = (nodetree.leaves().length +1) * gApp.MIN_ROW_HEIGHT;
@@ -176,15 +177,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("class", function (d) {
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                    switch (d.data.record.get('State').Name) {
-                        case 'Backlog':
-                            return "no--errors--not--started";
-                        case 'Refinement':
-                        case 'In Progress':
-                            return "no--errors--in--progress";
-                        case 'Done':
-                            return "no--errors--done";
-                    }
+                    return 'dot' + ((d.data.record.get('State').OrderIndex-1) % 5); //We wouldn't expect more than 5, but if so, repeat
                 } else {
                     return d.data.error ? "error--node": "no--errors--done";
                 }
@@ -600,6 +593,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         return pParent?pParent: gApp._findNodeById(nodes, 'root');
     },
         //Routines to manipulate the types
+
+    _getSelectedOrdinal: function() {
+        return gApp.down('#piType').lastSelection[0].get('Ordinal')
+    },
 
      _getTypeList: function(lowestOrdinal) {
         var piModels = [];

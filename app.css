@@ -58,3 +58,29 @@
   stroke: #00f;
   stroke-width: 2px;
 }
+
+.dot0 {
+  fill: #d7191c;
+  stroke: #000;
+  stroke-width: 2px;
+}
+.dot1 {
+  fill: #fdae61;
+  stroke: #000;
+  stroke-width: 2px;
+}
+.dot2 {
+  fill: #ffffbf;
+  stroke: #000;
+  stroke-width: 2px;
+}
+.dot3 {
+  fill: #abd9e9;
+  stroke: #000;
+  stroke-width: 2px;
+}
+.dot4 {
+  fill: #2c7bb6;
+  stroke: #000;
+  stroke-width: 2px;
+}

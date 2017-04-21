@@ -244,10 +244,10 @@ _objectFromYearFirstDate: function (dateArray) {
 
     _updateQueryConfig: function (portfolioItem) {
         this.chartComponentConfig.storeConfig.find._ItemHierarchy = portfolioItem.ObjectID;
-        this.chartComponentConfig.storeConfig.find._ValidFrom = {
-            "$gte": this._getChartStartDate(portfolioItem),
-            "$lt" : this._getChartEndDate(portfolioItem)
-        };
+//        this.chartComponentConfig.storeConfig.find._ValidFrom = {
+//            "$gte": this._getChartStartDate(portfolioItem),
+//            "$lt" : this._getChartEndDate(portfolioItem)
+//        };
 //        this.chartComponentConfig.storeConfig.find._ValidTo = this._getChartEndDate(portfolioItem);
     },
 
