@@ -274,8 +274,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     xtype: 'container',
                     itemId: 'leftCol',
                     width: 600,
-//                    overflowY: 'scroll',
-//                    overflowX: 'none'
                 },
                 {
                     xtype: 'container',
@@ -283,52 +281,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     width: '50%'
                 }
             ],
-//            items: [
-//                {
-//                        xtype: 'rallycard',
-//                        record: node.data.record,
-//                        fields: gApp.CARD_DISPLAY_FIELD_LIST,
-//                        showAge: true,
-//                        resizable: true
-//                },
-//                {
-//                    xtype: 'text',
-//                    text: 'Last Weekly Update Entry: '
-//                },
-//                {
-//                    xtype: 'rallytextfield',
-//                    readOnly: true,
-//                    blankText: 'No Update Available',
-//                    autoScroll: true,
-//                    width:600,
-//                    height: 200,
-//                    value: node.data.record.get('c_ProgressUpdate')
-//                },
-//                {
-//                    xtype: 'rallypopoverchilditemslistview',
-//                    target: array[index],
-//                    record: node.data.record,
-//                    childField: field,
-//                    addNewConfig: null,
-//                    gridConfig: {
-//                        title: 'Children of ' + node.data.record.data.FormattedID,
-//                        enableEditing: false,
-//                        enableRanking: false,
-//                        enableBulkEdit: false,
-//                        showRowActionsClumn: false,
-//                        columnCfgs : [
-//                            'FormattedID',
-//                            'Name',
-//    //                        'Owner',
-//                            'PercentDoneByStoryCount',
-//                            'PercentDoneByStoryPlanEstimate',
-//                            'State',
-//                            'c_RAGSatus'
-//                        ]
-//                    },
-//                    model: model
-//                }
-//            ],
             listeners: {
                 afterrender: function() {
                     this.down('#leftCol').add(
@@ -487,13 +439,11 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     labelWidth: 100,
                     margin: '5 0 5 20',
                     defaultSelectionPosition: 'first',
-//                    storeConfig: {
-//                        sorters: {
-//                            property: 'Ordinal',
-//                            direction: 'ASC'
-//                        }
-//                    },
+                    storeConfig: {
+                        fetch: ['TypePath', 'Name','Attributes','DisplayName','Note'],
+                    },
                     listeners: {
+//                        ready: function() { gApp._loadColourSchemes(); },
                         select: function() { gApp._kickOff();}    //Jump off here to add portfolio size selector
                     }
                 },
@@ -686,6 +636,41 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         this.callParent(arguments);
         this.addEvents('redrawTree');
     },
+
+    _loadColourSchemes: function() {
+            debugger;
+
+        var allModels = _.pluck(gApp._getTypeList(0), 'type');   //Get from the lowest up.
+        Rally.data.ModelFactory.getModels({
+            types: allModels
+        }). then ({
+            success: function(a,b,c) {
+                debugger;
+                //Add legend to screen via a mouse-over
+            }
+        });
+    },
+//
+//    _getModelsOfItems: function(modelnames) {
+//        var deferred = Ext.create('Deft.Deferred');
+//        Rally.data.wsapi.ModelFactory.getModels({
+//                    types: modelnames,
+//                    success:  function(a,b,c) {
+//                        debugger;
+//                        deferred.resolve(a)
+//                    },
+//                    failure: function (a,b,c) {
+//                        debugger;
+//                        deferred.reject(a)
+//                    },
+//                    callback: function (a,b,c) {
+//                        debugger;
+//                    }
+//                })
+//            );
+//        });
+//        return deferred.promise;
+//    },
 
     _initialiseD3: function() {
         d3.selection.prototype.addPredecessors = function  (nodes) {

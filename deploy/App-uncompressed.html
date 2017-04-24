@@ -25,7 +25,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Columnised Types',
             labelAlign: 'top'
-        }];
+        },
+        {
+            name: 'hideArchived',
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Hide Archived',
+            labelAlign: 'top'
+        }
+        ];
         return returned;
     },
     itemId: 'rallyApp',
@@ -325,18 +332,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 showAge: true,
                                 resizable: true
                         },
-                        {
-                            xtype: 'text',
-                            text: 'Last Weekly Update Entry: ',
-                            margin: '0 0 10 0'
-                        },
-                        {
-                            xtype: 'component',
-                            width:this.width,
-                            autoScroll: true,
-                            maxHeight: 80,
-                            html: this.record.get('c_ProgressUpdate')
-                        },
+
                         {
                             xtype: 'rallypopoverchilditemslistview',
                             target: array[index],
@@ -365,7 +361,25 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         }
                     );
 
-                    //This is specific to Barclays. Features are used as RAIDs as well.
+                    if ( this.record.get('c_ProgressUpdate')){
+                        this.down('#leftCol').insert(1,
+                            {
+                                xtype: 'component',
+                                width:this.width,
+                                autoScroll: true,
+                                maxHeight: 80,
+                                html: this.record.get('c_ProgressUpdate')
+                            }
+                        );
+                        this.down('#leftCol').insert(1,
+                            {
+                                xtype: 'text',
+                                text: 'Progress Update: ',
+                                margin: '0 0 10 0'
+                            }
+                        );
+                    }
+                    //This is specific to customer. Features are used as RAIDs as well.
                     if (this.record.self.ordinal === 1) {
                         this.down('#leftCol').add(
                             {
@@ -375,7 +389,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 childField: this.field,
                                 addNewConfig: null,
                                 gridConfig: {
-                                    title: 'Important RAIDS of ' + this.record.data.FormattedID,
+                                    title: 'Risks and Issues of ' + this.record.data.FormattedID,
                                     enableEditing: false,
                                     enableRanking: false,
                                     enableBulkEdit: false,
@@ -403,7 +417,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 }
             },
 
-            //This is specific to Barclays. Features are used as RAIDs as well.
+            //This is specific to customer. Features are used as RAIDs as well.
             nonRAIDStoreConfig: function() {
                 if (this.record.hasField('c_RAIDType') ){
                     switch (this.record.self.ordinal) {
@@ -422,7 +436,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 else return {};
             },
 
-            //This is specific to Barclays. Features are used as RAIDs as well.
+            //This is specific to customer. Features are used as RAIDs as well.
             RAIDStoreConfig: function() {
                 var retval = {};
 
@@ -465,12 +479,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     labelWidth: 100,
                     margin: '5 0 5 20',
                     defaultSelectionPosition: 'first',
-                    storeConfig: {
-                        sorters: {
-                            property: 'Ordinal',
-                            direction: 'ASC'
-                        }
-                    },
+//                    storeConfig: {
+//                        sorters: {
+//                            property: 'Ordinal',
+//                            direction: 'ASC'
+//                        }
+//                    },
                     listeners: {
                         select: function() { gApp._kickOff();}    //Jump off here to add portfolio size selector
                     }
@@ -524,14 +538,21 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
         _.each(data, function(record) {
             if (record.get('Children')){                                //Limit this to feature level and not beyond.
-                record.getCollection( 'Children').load({
+                collectionConfig = {
                     fetch: gApp.STORE_FETCH_FIELD_LIST,
                     callback: function(records, operation, success) {
                         //Start the recursive trawl down through the levels
                         if (records.length)  gApp._getArtifacts(records);
                     }
-                });
-            }
+                };
+                if (gApp.getSetting('hideArchived')) {
+                    collectionConfig.filters = [{
+                        property: 'Archived',
+                        value: false
+                    }];
+                }
+                record.getCollection( 'Children').load( collectionConfig );
+            };
         });
     },
 
