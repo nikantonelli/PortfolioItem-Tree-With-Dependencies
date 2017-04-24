@@ -252,7 +252,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     _nodeClick: function (node,index,array) {
         if (!(node.data.record.data.ObjectID)) return; //Only exists on real items
         //Get ordinal (or something ) to indicate we are the lowest level, then use "UserStories" instead of "Children"
-        var field = node.data.record.hasField('Children')? 'Children' : 'UserStories';
+        var childField = node.data.record.hasField('Children')? 'Children' : 'UserStories';
         var model = node.data.record.hasField('Children')? node.data.record.data.Children._type : 'UserStory';
 
         Ext.create('Rally.ui.dialog.Dialog', {
@@ -266,7 +266,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             record: node.data.record,
             disableScroll: false,
             model: model,
-            field: field,
+            childField: childField,
             title: 'Information for ' + node.data.record.get('FormattedID') + ': ' + node.data.record.get('Name'),
             layout: 'hbox',
             items: [
@@ -344,10 +344,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             xtype: 'rallypopoverchilditemslistview',
                             target: array[index],
                             record: this.record,
-                            childField: this.field,
+                            childField: this.childField,
                             addNewConfig: null,
                             gridConfig: {
-                                title: 'Children of ' + this.record.data.FormattedID,
+                                title: 'Children:',
                                 enableEditing: false,
                                 enableRanking: false,
                                 enableBulkEdit: false,
@@ -356,7 +356,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 columnCfgs : [
                                     'FormattedID',
                                     'Name',
-            //                        'Owner',
                                     'PercentDoneByStoryCount',
                                     'PercentDoneByStoryPlanEstimate',
                                     'State',
@@ -387,16 +386,16 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         );
                     }
                     //This is specific to customer. Features are used as RAIDs as well.
-                    if (this.record.self.ordinal === 1) {
+                    if ((this.record.self.ordinal === 1) && this.record.get('c_RAIDType')){
                         this.down('#leftCol').add(
                             {
                                 xtype: 'rallypopoverchilditemslistview',
                                 target: array[index],
                                 record: this.record,
-                                childField: this.field,
+                                childField: this.childField,
                                 addNewConfig: null,
                                 gridConfig: {
-                                    title: 'Risks and Issues of ' + this.record.data.FormattedID,
+                                    title: 'Risks and Issues:',
                                     enableEditing: false,
                                     enableRanking: false,
                                     enableBulkEdit: false,
@@ -421,6 +420,63 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     });
 //                    this.down('#rightCol').add( cfd );
                     cfd.generateChart();
+
+                    //Now add predecessors and successors
+                    this.down('#rightCol').add(
+                        {
+                            xtype: 'rallypopoverchilditemslistview',
+                            target: array[index],
+                            record: this.record,
+                            childField: 'Predecessors',
+                            addNewConfig: null,
+                            gridConfig: {
+                                title: 'Predecessors:',
+                                enableEditing: false,
+                                enableRanking: false,
+                                enableBulkEdit: false,
+                                showRowActionsColumn: false,
+                                storeConfig: this.RAIDStoreConfig(),
+                                columnCfgs : [
+                                'FormattedID',
+                                'Name',
+                                'PercentDoneByStoryCount',
+                                'PercentDoneByStoryPlanEstimate',
+                                'State',
+                                'c_RAGSatus',
+                                'ScheduleState'
+                                ]
+                            },
+                            model: this.model
+                        }
+                    );
+                    this.down('#rightCol').add(
+                        {
+                            xtype: 'rallypopoverchilditemslistview',
+                            target: array[index],
+                            record: this.record,
+                            childField: 'Successors',
+                            addNewConfig: null,
+                            gridConfig: {
+                                title: 'Successors: ',
+                                enableEditing: false,
+                                enableRanking: false,
+                                enableBulkEdit: false,
+                                showRowActionsColumn: false,
+                                storeConfig: this.RAIDStoreConfig(),
+                                columnCfgs : [
+                                'FormattedID',
+                                'Name',
+                                'PercentDoneByStoryCount',
+                                'PercentDoneByStoryPlanEstimate',
+                                'State',
+                                'c_RAGSatus',
+                                'ScheduleState'
+                                ]
+                            },
+                            model: this.model
+                        }
+                    );
+
                 }
             },
 
