@@ -205,15 +205,29 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         node.append("text")
               .attr("dy", 3)
               .attr("visible", false)
-              .attr("x", function(d) { return d.children ? -(gApp.NODE_CIRCLE_SIZE + 5) : (gApp.NODE_CIRCLE_SIZE + 5); })
-              .attr("y", function(d) { return d.children ? -(gApp.NODE_CIRCLE_SIZE + 5): 0; })
+              .attr("x", function(d) { return gApp._textXPos(d);})
+              .attr("y", function(d) { return gApp._textYPos(d);})
 //              .style("text-anchor", "start" )
-              .style("text-anchor",  function(d) { return d.parent ? "start" : "end";})
+              .style("text-anchor",  function(d) { return gApp._textAnchor(d);})
               .text(function(d) {  return d.children?d.data.Name : d.data.Name + ' ' + (d.data.record && d.data.record.data.Name); });
 
         //Now put in, but hide, all the dependency links
 //        node.addPredecessors(g.selectAll("circle"));
 //        node.addSuccessors();
+    },
+
+    _textXPos: function(d){
+        return d.children ? -(gApp.NODE_CIRCLE_SIZE + 5) : (gApp.NODE_CIRCLE_SIZE + 5);
+    },
+
+    _textYPos: function(d){
+        return (d.children  && d.parent) ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
+    },
+
+    _textAnchor: function(d){
+//        if (d.children && d.parent) return 'middle';
+        if (!d.children && d. parent) return 'start';
+        return 'end';
     },
 
     _nodeMouseOut: function(node, index,array){
@@ -255,7 +269,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             draggable: true,
             closable: true,
             width: 1200,
-            height: 800,
+            height: 600,
+                    overflowY: 'scroll',
+                    overflowX: 'none',
             record: node.data.record,
             disableScroll: false,
             model: model,
@@ -267,8 +283,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     xtype: 'container',
                     itemId: 'leftCol',
                     width: 600,
-                    overflowY: 'scroll',
-                    overflowX: 'none'
+//                    overflowY: 'scroll',
+//                    overflowX: 'none'
                 },
                 {
                     xtype: 'container',
@@ -461,6 +477,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     //Entry point after creation of render box
     _onElementValid: function(rs) {
+
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
         var hdrBox = this.insert (0,{
