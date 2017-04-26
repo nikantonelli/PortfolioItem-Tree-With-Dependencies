@@ -178,16 +178,18 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .enter().append("g")
             .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
-        //We're going to set the colour of the dot depndent on some criteria (in this case only in-progress
+        //We're going to set the colour of the dot depndent on some criteria (in this case only  'State'
         node.append("circle")
             .attr("r", gApp.NODE_CIRCLE_SIZE)
-            .attr("class", function (d) {
+            .attr("class", function (d) {   //Work out the individual dot colour
+                var lClass = "dotOutline"; // Might want to use outline to indicate something later
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                    return 'dot' + ((d.data.record.get('State').OrderIndex-1) % 5); //We wouldn't expect more than 5, but if so, repeat
+                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp._highestOrdinal()); //We wouldn't expect more than 5, but if so, repeat
                 } else {
                     return d.data.error ? "error--node": "no--errors--done";
                 }
+                return lClass;
             })
             .on("click", function(node, index, array) { gApp._nodeClick(node,index,array);})
             .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
@@ -550,10 +552,26 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 //                        }
 //                    },
                     listeners: {
-                        select: function() { gApp._kickOff();}    //Jump off here to add portfolio size selector
+                        select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
+                        ready: function() { gApp._addColourHelper(); }
                     }
                 },
             ]
+        });
+    },
+
+    _addColourHelper: function() {
+        var hdrBox = gApp.down('#headerBox');
+        var numColours = gApp._highestOrdinal() + 1;
+        var modelList = gApp._getTypeList(numColours);  //Doesn't matter if we are one over here.
+//        debugger;
+        //Get the SVG surface and add a new group
+        var svg = d3.select('svg');
+        var colours = svg.append("c")    //New group for colours
+                .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
+        _.each(modelList, function(modeltype) {
+            var 
+            colours.appendChild(
         });
     },
 
@@ -564,7 +582,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         var hdrBox = gApp.down('#headerBox');
         gApp._typeStore = ptype.store;
         var selector = gApp.down('#itemSelector');
-        if ( selector) selector.destroy();
+        if ( selector) {
+            selector.destroy();
+        }
         hdrBox.add({
             xtype: 'rallyartifactsearchcombobox',
             fieldLabel: 'Choose Start Item :',
@@ -598,8 +618,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         this.fireEvent('redrawTree');
         //Starting with highest selected by the combobox, go down
 
-        //TODO: at the moment we allow a single select via the combox. If this goes to be a multi-select, then we need to batch up the promises
-
         _.each(data, function(record) {
             if (record.get('Children')){                                //Limit this to feature level and not beyond.
                 collectionConfig = {
@@ -612,6 +630,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 if (gApp.getSetting('hideArchived')) {
                     collectionConfig.filters = [{
                         property: 'Archived',
+                        operator: '=',
                         value: false
                     }];
                 }
@@ -692,11 +711,11 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         return gApp.down('#piType').lastSelection[0].get('Ordinal')
     },
 
-     _getTypeList: function(lowestOrdinal) {
+     _getTypeList: function(highestOrdinal) {
         var piModels = [];
         _.each(gApp._typeStore.data.items, function(type) {
-            //Only push types above that selected
-            if (type.data.Ordinal >= lowestOrdinal )
+            //Only push types below that selected
+            if (type.data.Ordinal <= (highestOrdinal ? highestOrdinal: 0) )
                 piModels.push({ 'type': type.data.TypePath.toLowerCase(), 'Name': type.data.Name});
         });
         return piModels;

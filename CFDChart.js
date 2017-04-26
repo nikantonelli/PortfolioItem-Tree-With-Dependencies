@@ -266,7 +266,7 @@ _objectFromYearFirstDate: function (dateArray) {
         this.chartComponentConfig.chartConfig.title = this._buildChartTitle(portfolioItem);
         this.chartComponentConfig.chartConfig.subtitle = this._buildChartSubtitle(portfolioItem);
 
-        this.chartComponentConfig.calculatorConfig.chartAggregationType = 'Count';
+        this.chartComponentConfig.calculatorConfig.chartAggregationType = 'count';
         this.chartComponentConfig.chartConfig.yAxis[0].title.text = 'Count';
 
         this.chartComponentConfig.chartConfig.yAxis[0].labels = {

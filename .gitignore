@@ -8,3 +8,5 @@ test/AppSpec.js
 Proxy/BatchProxy.js
 
 bak.js
+
+svgToPdf.js
