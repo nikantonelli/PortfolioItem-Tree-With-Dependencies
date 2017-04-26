@@ -569,10 +569,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         var svg = d3.select('svg');
         var colours = svg.append("c")    //New group for colours
                 .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
-        _.each(modelList, function(modeltype) {
-            var 
-            colours.appendChild(
-        });
+//        _.each(modelList, function(modeltype) {
+//            var
+//            colours.appendChild(
+//        });
     },
 
     _nodes: [],
