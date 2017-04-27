@@ -115,6 +115,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
     _nodeTree: null,
     //Continuation point after selectors ready/changed
+
     _enterMainApp: function() {
 
         gApp._initialiseD3();
@@ -144,7 +145,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         svg.attr('viewBox', '0 0 ' + viewBoxSize[0] + ' ' + (viewBoxSize[1]+ gApp.NODE_CIRCLE_SIZE));
 
         gApp._nodeTree = nodetree;      //Save for later
-        g = svg.append("g")        .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
+        g = svg.append("g")        
+            .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)")
+            .attr("id","tree");
         //For the size, the tree is rotated 90degrees. Height is for top node to deepest child
         var tree = null;
         if (this.getSetting('keepTypesAligned')) {
@@ -168,7 +171,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         gApp._refreshTree();
     },
     _refreshTree: function(){
-        var g = d3.select('g');
+        var g = d3.select('#tree');
         var nodetree = gApp._nodeTree;
 
          g.selectAll(".link")
@@ -570,8 +573,96 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     _addColourHelper: function() {
-        var hdrBox = gApp.down('#hdeaderBox');
-        var modelList = gApp._getTypeList();
+        var hdrBox = gApp.down('#headerBox');
+        var numColours = gApp._highestOrdinal() + 1;
+        var modelList = gApp._getTypeList(numColours);  //Doesn't matter if we are one over here.
+
+        //Get the SVG surface and add a new group
+        var svg = d3.select('svg');
+        //Set a size big enough to hold the colour palette (which may get bigger later)
+        var viewBoxSize = [gApp.MIN_COLUMN_WIDTH*numColours, 20 * gApp.MIN_ROW_HEIGHT];
+
+        //Make surface the size available in the viewport (minus the selectors and margins)
+        var rs = this.down('#rootSurface');
+        rs.getEl().setWidth(viewBoxSize[0]);
+        rs.getEl().setHeight(viewBoxSize[1]);
+        //Set the svg area to the surface
+        this._setSVGSize(rs);
+        // Set the view dimensions in svg to match
+        svg.attr('class', 'rootSurface');
+        svg.attr('preserveAspectRatio', 'none');
+        svg.attr('viewBox', '0 0 ' + viewBoxSize[0] + ' ' + (viewBoxSize[1]+ gApp.NODE_CIRCLE_SIZE));
+        var colours = svg.append("g")    //New group for colours
+            .attr("id", "colourLegend")
+            .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
+        //Add some legend specific sprites here
+
+        _.each(modelList, function(modeltype, idx) {
+            gApp._addColourBox(modeltype,idx);
+        });
+
+    },
+
+    _addColourBox: function(modeltype, modelNum) {
+//        var colourBox = d3.select('#colourLegend' + modelNum);
+        var colours = d3.select('#colourLegend');
+//        if (!colourBox) {
+            colours.append("g")
+                .attr("id", "colourLegend" + modelNum)
+                .attr("transform","translate(" + (gApp.MIN_COLUMN_WIDTH*modelNum) + ",10)");
+//        }
+        var colourBox = d3.select('#colourLegend' + modelNum);
+            var lCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            colourBox.append("text")
+                .attr("dx", -gApp.NODE_CIRCLE_SIZE )
+                .attr("dy", -(gApp.NODE_CIRCLE_SIZE+2))
+                .attr("x",  0)
+                .attr("y", 0)
+//              .style("text-anchor", "start" )
+                .style("text-anchor",  'start')
+                .text(modeltype.Name);
+
+            //Now fetch all the values for the State field
+            //And then add the colours
+            var typeStore = Ext.create('Rally.data.wsapi.Store',
+                {
+                    model: 'State',
+                    filters: [{
+                        property: 'TypeDef',
+                        value: modeltype.ref
+                    },
+                    {
+                        property: 'Enabled',
+                        value: true
+                    }],
+                    context: gApp.getContext().getDataContext(),
+                    fetch: true
+                }
+            );
+            typeStore.load().then({ 
+                success: function(records){
+                            _.each(records, function(state){
+                                var idx = state.get('OrderIndex');
+                                colourBox.append("circle")
+                                    .attr("cx", 0)
+                                    .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
+                                    .attr("r", gApp.NODE_CIRCLE_SIZE)
+                                    .attr("class", "q" + state.get('OrderIndex') + '-' + gApp._highestOrdinal());
+                                colourBox.append("text")
+                                    .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
+                                    .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
+                                    .attr("x",0)
+                                    .attr("y",idx * gApp.MIN_ROW_HEIGHT)
+                                    .attr("text-anchor", 'start')
+                                    .text(state.get('Name'));
+                            })
+                        },
+                failure: function(error) {
+                    debugger;
+                }
+            });
+        
+       colours.attr("visibility","hidden");    //Render, but mask it. Use "visible" to show again
     },
 
     _nodes: [],
@@ -595,12 +686,32 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             margin: '5 0 5 20',
             storeConfig: {
                 models: [ 'portfolioitem/' + ptype.rawValue ],
-                fetch: gApp.STORE_FETCH_FIELD_LIST
+                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                context: gApp.getContext().getDataContext()
             },
             listeners: {
                 select: function(selector,store) {
                     if ( gApp._nodes) gApp._nodes = [];
                     gApp._getArtifacts(store);
+                }
+            }
+        });
+        hdrBox.add({
+            xtype: 'rallybutton',
+            margin: '5 0 5 20',
+            ticked: false,
+            text: 'Show Colours',
+            handler: function() {
+                if (this.ticked == false) {
+                    this.setText('Return');
+                    this.ticked = true;
+                    d3.select("#colourLegend").attr("visibility","visible");
+                    d3.select("#tree").attr("visibility", "hidden");
+                } else {
+                    this.setText('Show Colours')
+                    this.ticked = false;
+                    d3.select("#colourLegend").attr("visibility","hidden");
+                    d3.select("#tree").attr("visibility", "visible");
                 }
             }
         });
@@ -715,7 +826,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         _.each(gApp._typeStore.data.items, function(type) {
             //Only push types below that selected
             if (type.data.Ordinal <= (highestOrdinal ? highestOrdinal: 0) )
-                piModels.push({ 'type': type.data.TypePath.toLowerCase(), 'Name': type.data.Name});
+                piModels.push({ 'type': type.data.TypePath.toLowerCase(), 'Name': type.data.Name, 'ref': type.data._ref});
         });
         return piModels;
     },
@@ -727,6 +838,16 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         var model = null;
         _.each(gApp._typeStore.data.items, function(type) { if (number == type.get('Ordinal')) { model = type; } });
         return model && model.get('TypePath');
+    },
+
+    _getOrdFromModel: function(modelName){
+        var model = null;
+        _.each(gApp._typeStore.data.items, function(type) {
+            if (modelName == type.get('TypePath').toLowerCase()) {
+                model = type.get('Ordinal');
+            }
+        });
+        return model;
     },
 
     _createTree: function (nodes) {
@@ -745,7 +866,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     redrawTree: function() {
         if (gApp._nodeTree) {
-            d3.select("g").remove();
+            d3.select("#tree").remove();
             gApp._nodeTree = null;
         }
         gApp._enterMainApp();
