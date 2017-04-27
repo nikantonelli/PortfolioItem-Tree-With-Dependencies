@@ -188,7 +188,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 var lClass = "dotOutline"; // Might want to use outline to indicate something later
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp._highestOrdinal()); //We wouldn't expect more than 5, but if so, repeat
+                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp._highestOrdinal()); 
                 } else {
                     return d.data.error ? "error--node": "no--errors--done";
                 }
@@ -638,7 +638,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     .attr("cx", 0)
                                     .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
                                     .attr("r", gApp.NODE_CIRCLE_SIZE)
-                                    .attr("class", "q" + state.get('OrderIndex') + '-' + gApp._highestOrdinal());
+                                    .attr("class", "q" + (state.get('OrderIndex')-1) + '-' + gApp._highestOrdinal());
                                 colourBox.append("text")
                                     .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
                                     .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
@@ -687,11 +687,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 }
             }
         });
+        var buttonTxt = "Colour Scheme"
         hdrBox.add({
             xtype: 'rallybutton',
             margin: '5 0 5 20',
             ticked: false,
-            text: 'Show Colours',
+            text: buttonTxt,
             handler: function() {
                 if (this.ticked == false) {
                     this.setText('Return');
@@ -699,7 +700,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     d3.select("#colourLegend").attr("visibility","visible");
                     d3.select("#tree").attr("visibility", "hidden");
                 } else {
-                    this.setText('Show Colours')
+                    this.setText(buttonTxt)
                     this.ticked = false;
                     d3.select("#colourLegend").attr("visibility","hidden");
                     d3.select("#tree").attr("visibility", "visible");
