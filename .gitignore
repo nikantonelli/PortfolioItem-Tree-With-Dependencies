@@ -10,3 +10,7 @@ Proxy/BatchProxy.js
 bak.js
 
 svgToPdf.js
+
+.vscode/launch.json
+
+.vscode/tasks.json

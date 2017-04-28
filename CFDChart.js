@@ -334,9 +334,9 @@ _objectFromYearFirstDate: function (dateArray) {
     chartComponentConfig: {
         xtype: "rallychart",
         //Colour blind safe colour range
-        chartColors: ['#d73027','#fc8d59','#fee090','#e0f3f8','#91bfdb','#4575b4'],
-        queryErrorMessage: "No data to display.<br /><br />Most likely, stories are either not yet available or started for this portfolio item.",
-        aggregationErrorMessage: "No data to display.<br /><br />Check the data type setting for displaying data based on count versus plan estimate.",
+        chartColors: ['#d73027','#fc8d59','#fee090','#e0f3f8','#91bfdb','#4575b4'], //These should match the CSS file for the dendrogram
+        queryErrorMessage: "No User Stories to display.<br /><br />Most likely, stories are either not yet available or started for this portfolio item.",
+        aggregationErrorMessage: "Invalid/Incomplete data.<br /><br />Check the User Story Estimate data. Data is based on count versus plan estimate).",
         storeType: 'Rally.data.lookback.SnapshotStore',
         storeConfig: {
             find: {
