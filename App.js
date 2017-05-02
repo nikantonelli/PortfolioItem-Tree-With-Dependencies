@@ -279,8 +279,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     xtype: 'container',
                     itemId: 'leftCol',
                     width: 400,
-//                    overflowY: 'scroll',
-//                    overflowX: 'none'
                 },
                 {
                     xtype: 'container',
@@ -290,55 +288,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 {
                     xtype: 'container',
                     itemId: 'rightCol',
-                    width: 600
+                    width: 580  //Leave 20 for scroll bar
                 }
             ],
-//            items: [
-//                {
-//                        xtype: 'rallycard',
-//                        record: node.data.record,
-//                        fields: gApp.CARD_DISPLAY_FIELD_LIST,
-//                        showAge: true,
-//                        resizable: true
-//                },
-//                {
-//                    xtype: 'text',
-//                    text: 'Last Weekly Update Entry: '
-//                },
-//                {
-//                    xtype: 'rallytextfield',
-//                    readOnly: true,
-//                    blankText: 'No Update Available',
-//                    autoScroll: true,
-//                    width:600,
-//                    height: 200,
-//                    value: node.data.record.get('c_ProgressUpdate')
-//                },
-//                {
-//                    xtype: 'rallypopoverchilditemslistview',
-//                    target: array[index],
-//                    record: node.data.record,
-//                    childField: field,
-//                    addNewConfig: null,
-//                    gridConfig: {
-//                        title: 'Children of ' + node.data.record.data.FormattedID,
-//                        enableEditing: false,
-//                        enableRanking: false,
-//                        enableBulkEdit: false,
-//                        showRowActionsClumn: false,
-//                        columnCfgs : [
-//                            'FormattedID',
-//                            'Name',
-//    //                        'Owner',
-//                            'PercentDoneByStoryCount',
-//                            'PercentDoneByStoryPlanEstimate',
-//                            'State',
-//                            'c_RAGSatus'
-//                        ]
-//                    },
-//                    model: model
-//                }
-//            ],
             listeners: {
                 afterrender: function() {
                     this.down('#leftCol').add(
@@ -350,7 +302,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 resizable: true
                         }
                     );
-                    debugger;
                     var children = this.down('#middleCol').add(
 
                         {
@@ -360,7 +311,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             childField: this.childField,
                             addNewConfig: null,
                             gridConfig: {
-                                title: 'Children:',
+                                title: '<b>Children:</b>',
                                 enableEditing: false,
                                 enableRanking: false,
                                 enableBulkEdit: false,
@@ -369,8 +320,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 columnCfgs : [
                                     'FormattedID',
                                     'Name',
-                                    'PercentDoneByStoryCount',
-                                    'PercentDoneByStoryPlanEstimate',
+                                    {
+                                        text: '% By Count',
+                                        dataIndex: 'PercentDoneByStoryCount'
+                                    },
+                                    {
+                                        text: '% By Est',
+                                        dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                    },
                                     'State',
                                     'c_RAGSatus',
                                     'ScheduleState'
@@ -398,14 +355,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     fontSize: '13px',
                                     textTransform: 'uppercase',
                                     fontFamily: 'ProximaNova,Helvetica,Arial',
-                                    fontWeight: 'normal'
+                                    fontWeight: 'bold'
                                 },
                                 margin: '0 0 10 0'
                             }
                         );
                     }
                     //This is specific to customer. Features are used as RAIDs as well.
-                    if ((this.record.self.ordinal === 1) && this.record.get('c_RAIDType')){
+                    if ((this.record.self.ordinal === 1) && this.record.hasField('c_RAIDType')){
                         var rai = this.down('#leftCol').add(
                             {
                                 xtype: 'rallypopoverchilditemslistview',
@@ -414,7 +371,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 childField: this.childField,
                                 addNewConfig: null,
                                 gridConfig: {
-                                    title: 'Risks and Issues:',
+                                    title: '<b>Risks and Issues:</b>',
                                     enableEditing: false,
                                     enableRanking: false,
                                     enableBulkEdit: false,
@@ -433,12 +390,11 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             }
                         );
                         rai.down('#header').destroy();
-                    }
+                   }
                     var cfd = Ext.create('Rally.apps.CFDChart', {
                         record: this.record,
                         container: this.down('#rightCol')
                     });
-//                    this.down('#rightCol').add( cfd );
                     cfd.generateChart();
 
                     //Now add predecessors and successors
@@ -450,7 +406,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             childField: 'Predecessors',
                             addNewConfig: null,
                             gridConfig: {
-                                title: 'Predecessors:',
+                                title: '<b>Predecessors:</b>',
                                 enableEditing: false,
                                 enableRanking: false,
                                 enableBulkEdit: false,
@@ -459,8 +415,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 columnCfgs : [
                                 'FormattedID',
                                 'Name',
-                                'PercentDoneByStoryCount',
-                                'PercentDoneByStoryPlanEstimate',
+                                {
+                                    text: '% By Count',
+                                    dataIndex: 'PercentDoneByStoryCount'
+                                },
+                                {
+                                    text: '% By Est',
+                                    dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                },
                                 'State',
                                 'c_RAGSatus',
                                 'ScheduleState'
@@ -478,7 +440,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             childField: 'Successors',
                             addNewConfig: null,
                             gridConfig: {
-                                title: 'Successors: ',
+                                title: '<b>Successors:</b>',
                                 enableEditing: false,
                                 enableRanking: false,
                                 enableBulkEdit: false,
@@ -487,8 +449,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 columnCfgs : [
                                 'FormattedID',
                                 'Name',
-                                'PercentDoneByStoryCount',
-                                'PercentDoneByStoryPlanEstimate',
+                                {
+                                    text: '% By Count',
+                                    dataIndex: 'PercentDoneByStoryCount'
+                                },
+                                {
+                                    text: '% By Est',
+                                    dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                },
                                 'State',
                                 'c_RAGSatus',
                                 'ScheduleState'
