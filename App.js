@@ -188,7 +188,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 var lClass = "dotOutline"; // Might want to use outline to indicate something later
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp._highestOrdinal()); 
+                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
                 } else {
                     return d.data.error ? "error--node": "no--errors--done";
                 }
@@ -547,6 +547,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         });
     },
 
+    numStates: [],
+
     _addColourHelper: function() {
         var hdrBox = gApp.down('#headerBox');
         var numColours = gApp._highestOrdinal() + 1;
@@ -616,22 +618,23 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             );
             typeStore.load().then({ 
                 success: function(records){
-                            _.each(records, function(state){
-                                var idx = state.get('OrderIndex');
-                                colourBox.append("circle")
-                                    .attr("cx", 0)
-                                    .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
-                                    .attr("r", gApp.NODE_CIRCLE_SIZE)
-                                    .attr("class", "q" + (state.get('OrderIndex')-1) + '-' + gApp._highestOrdinal());
-                                colourBox.append("text")
-                                    .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
-                                    .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
-                                    .attr("x",0)
-                                    .attr("y",idx * gApp.MIN_ROW_HEIGHT)
-                                    .attr("text-anchor", 'start')
-                                    .text(state.get('Name'));
-                            })
-                        },
+                    gApp.numStates[modelNum] = records.length;
+                    _.each(records, function(state){
+                        var idx = state.get('OrderIndex');
+                        colourBox.append("circle")
+                            .attr("cx", 0)
+                            .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
+                            .attr("r", gApp.NODE_CIRCLE_SIZE)
+                            .attr("class", "q" + (state.get('OrderIndex')-1) + '-' + records.length);
+                        colourBox.append("text")
+                            .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
+                            .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
+                            .attr("x",0)
+                            .attr("y",idx * gApp.MIN_ROW_HEIGHT)
+                            .attr("text-anchor", 'start')
+                            .text(state.get('Name'));
+                    })
+                },
                 failure: function(error) {
                     debugger;
                 }
@@ -650,7 +653,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         if ( selector) {
             selector.destroy();
         }
-        hdrBox.add({
+        hdrBox.insert(2,{
             xtype: 'rallyartifactsearchcombobox',
             fieldLabel: 'Choose Start Item :',
             itemId: 'itemSelector',
@@ -672,25 +675,28 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             }
         });
         var buttonTxt = "Colour Codes"
-        hdrBox.add({
-            xtype: 'rallybutton',
-            margin: '5 0 5 20',
-            ticked: false,
-            text: buttonTxt,
-            handler: function() {
-                if (this.ticked === false) {
-                    this.setText('Return');
-                    this.ticked = true;
-                    d3.select("#colourLegend").attr("visibility","visible");
-                    d3.select("#tree").attr("visibility", "hidden");
-                } else {
-                    this.setText(buttonTxt)
-                    this.ticked = false;
-                    d3.select("#colourLegend").attr("visibility","hidden");
-                    d3.select("#tree").attr("visibility", "visible");
+        if (!gApp.down('#colourButton')){
+            hdrBox.add({
+                xtype: 'rallybutton',
+                itemId: 'colourButton',
+                margin: '5 0 5 20',
+                ticked: false,
+                text: buttonTxt,
+                handler: function() {
+                    if (this.ticked === false) {
+                        this.setText('Return');
+                        this.ticked = true;
+                        d3.select("#colourLegend").attr("visibility","visible");
+                        d3.select("#tree").attr("visibility", "hidden");
+                    } else {
+                        this.setText(buttonTxt)
+                        this.ticked = false;
+                        d3.select("#colourLegend").attr("visibility","hidden");
+                        d3.select("#tree").attr("visibility", "visible");
+                    }
                 }
-            }
-        });
+            });
+        }
 
 //        gApp._getArtifacts(ptype);
     },
