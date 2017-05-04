@@ -31,6 +31,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Hide Archived',
             labelAlign: 'top'
+        },
+        {
+            name: 'showDependencies',
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show Dependencies on Hover',
+            labelAlign: 'top'
         }
         ];
         return returned;
@@ -128,7 +134,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         var numColumns = gApp._getSelectedOrdinal()+1; //Leave extras for offset at left and text at right??
         var columnWidth = this.getSize().width/numColumns;
         columnWidth = columnWidth > gApp.MIN_COLUMN_WIDTH ? columnWidth : gApp.MIN_COLUMN_WIDTH;
-        treeboxHeight = (nodetree.leaves().length +1) * gApp.MIN_ROW_HEIGHT;
+        treeboxHeight = ((nodetree.leaves().length +1) * gApp.MIN_ROW_HEIGHT) + 10;
 
         var viewBoxSize = [columnWidth*numColumns, treeboxHeight];
 
@@ -197,7 +203,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 var lClass = "dotOutline"; // Might want to use outline to indicate something later
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp._highestOrdinal()); 
+                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
+                    lClass += gApp._dataCheckForItem(d);
                 } else {
                     return d.data.error ? "error--node": "no--errors--done";
                 }
@@ -235,8 +242,46 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         return 'end';
     },
 
+    _hideLinks: function(){
+        var tree = d3.select('#tree');
+        var links = tree.selectAll('path');
+        links.attr("visibility","hidden");
+    },
+
+    _showLinks: function(){
+        var tree = d3.select('#tree');
+        var links = tree.selectAll('path');
+        links.attr("visibility","visible");
+    },
+
+    _showDependencies: function(d) {
+        if (!this.getSetting('showDependencies'))
+            return;
+        
+        gApp._hideLinks();
+        if (d.dependencies) {
+            d.dependencies.attr("visibility","visible");
+        }
+        else {
+            // Create dependencies links
+//            debugger;
+        }
+
+    },
+    
+    _hideDependencies: function(d) {
+        if (!this.getSetting('showDependencies'))
+            return;
+
+        gApp._showLinks();            
+        if (d.dependencies) {
+            d.dependencies.attr("visibility","hidden");
+        }
+    },
+    
     _nodeMouseOut: function(node, index,array){
         if (node.card) node.card.hide();
+        gApp._hideDependencies(node);
     },
 
     _nodeMouseOver: function(node,index,array) {
@@ -252,14 +297,24 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     constrain: false,
                     width: gApp.MIN_COLUMN_WIDTH,
                     height: 'auto',
-                    floating: true,
+                    floating: true, //Allows us to control via the 'show' event
                     shadow: false,
                     showAge: true,
-                    resizable: true
+                    resizable: true,
+                    listeners: {
+                        show: function(card){
+                            //Move card to one side, preferably closer to the centre of the screen
+                            var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
+                            var ypos = array[index].getScreenCTM().f;
+                            card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
+                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos)  //Tree is rotated
+                        }
+                    }
                 });
                 node.card = card;
             }
             node.card.show();
+            gApp._showDependencies(node);
         }
     },
 
@@ -273,10 +328,13 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             autoShow: true,
             draggable: true,
             closable: true,
-            width: 1400,
-            height: 600,
-                    overflowY: 'scroll',
-                    overflowX: 'none',
+            width: 1100,
+            height: 800,
+            style: {
+                border: "thick solid #000000"
+            },
+            overflowY: 'scroll',
+            overflowX: 'none',
             record: node.data.record,
             disableScroll: false,
             model: model,
@@ -287,13 +345,13 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 {
                     xtype: 'container',
                     itemId: 'leftCol',
-                    width: 400,
+                    width: 500,
                 },
-                {
-                    xtype: 'container',
-                    itemId: 'middleCol',
-                    width: 400
-                },
+                // {
+                //     xtype: 'container',
+                //     itemId: 'middleCol',
+                //     width: 400
+                // },
                 {
                     xtype: 'container',
                     itemId: 'rightCol',
@@ -311,41 +369,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 resizable: true
                         }
                     );
-                    var children = this.down('#middleCol').add(
-
-                        {
-                            xtype: 'rallypopoverchilditemslistview',
-                            target: array[index],
-                            record: this.record,
-                            childField: this.childField,
-                            addNewConfig: null,
-                            gridConfig: {
-                                title: '<b>Children:</b>',
-                                enableEditing: false,
-                                enableRanking: false,
-                                enableBulkEdit: false,
-                                showRowActionsColumn: false,
-                                storeConfig: this.nonRAIDStoreConfig(),
-                                columnCfgs : [
-                                    'FormattedID',
-                                    'Name',
-                                    {
-                                        text: '% By Count',
-                                        dataIndex: 'PercentDoneByStoryCount'
-                                    },
-                                    {
-                                        text: '% By Est',
-                                        dataIndex: 'PercentDoneByStoryPlanEstimate'
-                                    },
-                                    'State',
-                                    'c_RAGSatus',
-                                    'ScheduleState'
-                                ]
-                            },
-                            model: this.model
-                        }
-                    );
-                    children.down('#header').destroy();
 
                     if ( this.record.get('c_ProgressUpdate')){
                         this.down('#leftCol').insert(1,
@@ -400,6 +423,41 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         );
                         rai.down('#header').destroy();
                    }
+                    var children = this.down('#leftCol').add(
+                        {
+                            xtype: 'rallypopoverchilditemslistview',
+                            target: array[index],
+                            record: this.record,
+                            childField: this.childField,
+                            addNewConfig: null,
+                            gridConfig: {
+                                title: '<b>Children:</b>',
+                                enableEditing: false,
+                                enableRanking: false,
+                                enableBulkEdit: false,
+                                showRowActionsColumn: false,
+                                storeConfig: this.nonRAIDStoreConfig(),
+                                columnCfgs : [
+                                    'FormattedID',
+                                    'Name',
+                                    {
+                                        text: '% By Count',
+                                        dataIndex: 'PercentDoneByStoryCount'
+                                    },
+                                    {
+                                        text: '% By Est',
+                                        dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                    },
+                                    'State',
+                                    'c_RAGSatus',
+                                    'ScheduleState'
+                                ]
+                            },
+                            model: this.model
+                        }
+                    );
+                    children.down('#header').destroy();
+
                     var cfd = Ext.create('Rally.apps.CFDChart', {
                         record: this.record,
                         container: this.down('#rightCol')
@@ -520,6 +578,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             });
     },
 
+    _dataCheckForItem: function(d){
+        return "";
+    },
     //Entry point after creation of render box
     _onElementValid: function(rs) {
 
@@ -555,6 +616,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             ]
         });
     },
+
+    numStates: [],
 
     _addColourHelper: function() {
         var hdrBox = gApp.down('#headerBox');
@@ -625,22 +688,23 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             );
             typeStore.load().then({ 
                 success: function(records){
-                            _.each(records, function(state){
-                                var idx = state.get('OrderIndex');
-                                colourBox.append("circle")
-                                    .attr("cx", 0)
-                                    .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
-                                    .attr("r", gApp.NODE_CIRCLE_SIZE)
-                                    .attr("class", "q" + (state.get('OrderIndex')-1) + '-' + gApp._highestOrdinal());
-                                colourBox.append("text")
-                                    .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
-                                    .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
-                                    .attr("x",0)
-                                    .attr("y",idx * gApp.MIN_ROW_HEIGHT)
-                                    .attr("text-anchor", 'start')
-                                    .text(state.get('Name'));
-                            })
-                        },
+                    gApp.numStates[modelNum] = records.length;
+                    _.each(records, function(state){
+                        var idx = state.get('OrderIndex');
+                        colourBox.append("circle")
+                            .attr("cx", 0)
+                            .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
+                            .attr("r", gApp.NODE_CIRCLE_SIZE)
+                            .attr("class", "q" + (state.get('OrderIndex')-1) + '-' + records.length);
+                        colourBox.append("text")
+                            .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
+                            .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
+                            .attr("x",0)
+                            .attr("y",idx * gApp.MIN_ROW_HEIGHT)
+                            .attr("text-anchor", 'start')
+                            .text(state.get('Name'));
+                    })
+                },
                 failure: function(error) {
                     debugger;
                 }
@@ -659,7 +723,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         if ( selector) {
             selector.destroy();
         }
-        hdrBox.add({
+        hdrBox.insert(2,{
             xtype: 'rallyartifactsearchcombobox',
             fieldLabel: 'Choose Start Item :',
             itemId: 'itemSelector',
@@ -667,7 +731,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             queryMode: 'remote',
             pageSize: 25,
             width: 600,
-            margin: '5 0 5 20',
+            margin: '10 0 5 20',
             storeConfig: {
                 models: [ 'portfolioitem/' + ptype.rawValue ],
                 fetch: gApp.STORE_FETCH_FIELD_LIST,
@@ -681,25 +745,28 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             }
         });
         var buttonTxt = "Colour Codes"
-        hdrBox.add({
-            xtype: 'rallybutton',
-            margin: '5 0 5 20',
-            ticked: false,
-            text: buttonTxt,
-            handler: function() {
-                if (this.ticked === false) {
-                    this.setText('Return');
-                    this.ticked = true;
-                    d3.select("#colourLegend").attr("visibility","visible");
-                    d3.select("#tree").attr("visibility", "hidden");
-                } else {
-                    this.setText(buttonTxt)
-                    this.ticked = false;
-                    d3.select("#colourLegend").attr("visibility","hidden");
-                    d3.select("#tree").attr("visibility", "visible");
+        if (!gApp.down('#colourButton')){
+            hdrBox.add({
+                xtype: 'rallybutton',
+                itemId: 'colourButton',
+                margin: '10 0 5 20',
+                ticked: false,
+                text: buttonTxt,
+                handler: function() {
+                    if (this.ticked === false) {
+                        this.setText('Return');
+                        this.ticked = true;
+                        d3.select("#colourLegend").attr("visibility","visible");
+                        d3.select("#tree").attr("visibility", "hidden");
+                    } else {
+                        this.setText(buttonTxt)
+                        this.ticked = false;
+                        d3.select("#colourLegend").attr("visibility","hidden");
+                        d3.select("#tree").attr("visibility", "visible");
+                    }
                 }
-            }
-        });
+            });
+        }
 
 //        gApp._getArtifacts(ptype);
     },
@@ -17910,13 +17977,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
 .error--node {
   fill: #f00;
 }
-.no--errors {
-  fill: #0f0;
-  stroke: #00f;
-  stroke-width: 2px;
+.data--errors {
+  stroke: #f00;
+  stroke-width: 3px;
 }
-.no--errors--done {
-  fill: #000;
+.no--errors {
   stroke: #111;
   stroke-width: 2px;
 }

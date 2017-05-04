@@ -38,13 +38,11 @@
 .error--node  {
   fill: #f00;
 }
-.no--errors  {
-  fill: #0f0;
-  stroke: #00f;
-  stroke-width: 2px;
+.data--errors  {
+  stroke: #f00;
+  stroke-width: 3px;
 }
-.no--errors--done {
-  fill: #000;
+.no--errors {
   stroke: #111;
   stroke-width: 2px;
 }
