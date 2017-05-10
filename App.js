@@ -249,17 +249,39 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         links.attr("visibility","visible");
     },
 
+    _dependenciesVisible: false,
+
     _showDependencies: function(d) {
         if (!this.getSetting('showDependencies'))
             return;
         
         gApp._hideLinks();
+        gApp._dependenciesVisible = true;
         if (d.dependencies) {
             d.dependencies.attr("visibility","visible");
         }
         else {
             // Create dependencies links
-//            debugger;
+            var r = d.data.record;
+            if (r.get('Predecessors').Count>0){
+                r.getCollection('Predecessors').load({
+                    callback: function(p, op, s) {
+                        if (s)  //Success
+
+                        _.each(p, function(item) {
+                            var n = gApp._findNodeById(gApp._nodes, item.get('_ref'));
+                            if (n) {
+                                debugger;
+                            } else {
+                                Rally.ui.notify.Notifier.showError({message: 'Warning:' + r.get('FormattedID') + ' has dependencies outside current selection to '+ item.get('FormattedID')});
+                            }
+                        });
+                    }
+                });
+            }
+            if (r.get('Successors').Count>0){
+//                debugger;
+            }
         }
 
     },
@@ -269,6 +291,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             return;
 
         gApp._showLinks();            
+        gApp._dependenciesVisible = false;   //Due to async nature, we need to log this
         if (d.dependencies) {
             d.dependencies.attr("visibility","hidden");
         }
@@ -473,7 +496,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 enableRanking: false,
                                 enableBulkEdit: false,
                                 showRowActionsColumn: false,
-                                storeConfig: this.RAIDStoreConfig(),
                                 columnCfgs : [
                                 'FormattedID',
                                 'Name',
@@ -507,7 +529,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 enableRanking: false,
                                 enableBulkEdit: false,
                                 showRowActionsColumn: false,
-                                storeConfig: this.RAIDStoreConfig(),
                                 columnCfgs : [
                                 'FormattedID',
                                 'Name',
