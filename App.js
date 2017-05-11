@@ -6,7 +6,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     componentCls: 'app',
     config: {
         defaultSettings: {
-            keepTypesAligned: true
+            keepTypesAligned: true,
+            hideArchived: true,
+            showDependencies: true
         }
     },
     getSettingsFields: function() {
@@ -257,8 +259,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         
         gApp._hideLinks();
         gApp._dependenciesVisible = true;
-        if (d.dependencies) {
-            d.dependencies.attr("visibility","visible");
+        if (d.data.dependencies) {
+            debugger;
+            d.data.dependencies.select('link').attr("visibility","visible");
+            if (d.data.dependencyError) {
+                Rally.ui.notify.Notifier.showError({message: 'Warning:' + d.data.record.get('FormattedID') + ' has dependencies outside current selection'});
+            }
         }
         else {
             // Create dependencies links
@@ -267,15 +273,17 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 r.getCollection('Predecessors').load({
                     callback: function(p, op, s) {
                         if (s)  //Success
-
-                        _.each(p, function(item) {
-                            var n = gApp._findNodeById(gApp._nodes, item.get('_ref'));
-                            if (n) {
-                                debugger;
-                            } else {
-                                Rally.ui.notify.Notifier.showError({message: 'Warning:' + r.get('FormattedID') + ' has dependencies outside current selection to '+ item.get('FormattedID')});
-                            }
-                        });
+                        {
+                            _.each(p, function(item) {
+                                var n = gApp._findNodeById(gApp._nodes, item.get('_ref'));
+                                if (n) {
+                                    d.data.dependencies.push(n);
+                                } else {
+                                    d.data.dependencyError = true;
+                                    Rally.ui.notify.Notifier.showError({message: 'Warning:' + r.get('FormattedID') + ' has dependencies outside current selection to '+ item.get('FormattedID')});
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -293,7 +301,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         gApp._showLinks();            
         gApp._dependenciesVisible = false;   //Due to async nature, we need to log this
         if (d.dependencies) {
-            d.dependencies.attr("visibility","hidden");
+            d.dependencies.select('link').attr("visibility","hidden");
         }
     },
     
@@ -824,7 +832,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         //Push them into an array we can reconfigure
         _.each(data, function(record) {
             var localNode = (gApp.getContext().getProjectRef() === record.get('Project')._ref);
-            nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode});
+            nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode, 'dependencies': []});
         });
         return nodes;
     },
