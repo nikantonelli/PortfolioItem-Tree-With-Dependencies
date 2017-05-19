@@ -258,7 +258,7 @@ _objectFromYearFirstDate: function (dateArray) {
         this._setDynamicConfigValues(portfolioItem);
         this._calculateDateRange(portfolioItem);
         this._updateQueryConfig(portfolioItem);
-        this.container.insert(0, this.chartComponentConfig);
+        this.container.add(this.chartComponentConfig);
     },
 
     _setDynamicConfigValues: function (portfolioItem) {

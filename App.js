@@ -8,7 +8,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         defaultSettings: {
             keepTypesAligned: true,
             hideArchived: true,
-            showDependencies: true
+            showDependencies: false
         }
     },
     getSettingsFields: function() {
@@ -260,7 +260,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         gApp._hideLinks();
         gApp._dependenciesVisible = true;
         if (d.data.dependencies) {
-            debugger;
             d.data.dependencies.select('link').attr("visibility","visible");
             if (d.data.dependencyError) {
                 Rally.ui.notify.Notifier.showError({message: 'Warning:' + d.data.record.get('FormattedID') + ' has dependencies outside current selection'});
@@ -271,6 +270,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             var r = d.data.record;
             if (r.get('Predecessors').Count>0){
                 r.getCollection('Predecessors').load({
+                    sorters: [{
+                        property: 'DragAndDropRank',
+                        direction: 'ASC'
+                    }],
                     callback: function(p, op, s) {
                         if (s)  //Success
                         {
@@ -333,7 +336,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
                             var ypos = array[index].getScreenCTM().f;
                             card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
-                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos)  //Tree is rotated
+                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
                         }
                     }
                 });
@@ -386,69 +389,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             ],
             listeners: {
                 afterrender: function() {
-                    this.down('#leftCol').add(
-                        {
-                                xtype: 'rallycard',
-                                record: this.record,
-                                fields: gApp.CARD_DISPLAY_FIELD_LIST,
-                                showAge: true,
-                                resizable: true
-                        }
-                    );
 
-                    if ( this.record.get('c_ProgressUpdate')){
-                        this.down('#leftCol').insert(1,
-                            {
-                                xtype: 'component',
-                                width: '100%',
-                                autoScroll: true,
-                                html: this.record.get('c_ProgressUpdate')
-                            }
-                        );
-                        this.down('#leftCol').insert(1,
-                            {
-                                xtype: 'text',
-                                text: 'Progress Update: ',
-                                style: {
-                                    fontSize: '13px',
-                                    textTransform: 'uppercase',
-                                    fontFamily: 'ProximaNova,Helvetica,Arial',
-                                    fontWeight: 'bold'
-                                },
-                                margin: '0 0 10 0'
-                            }
-                        );
-                    }
-                    //This is specific to customer. Features are used as RAIDs as well.
-                    if ((this.record.self.ordinal === 1) && this.record.hasField('c_RAIDType')){
-                        var rai = this.down('#leftCol').add(
-                            {
-                                xtype: 'rallypopoverchilditemslistview',
-                                target: array[index],
-                                record: this.record,
-                                childField: this.childField,
-                                addNewConfig: null,
-                                gridConfig: {
-                                    title: '<b>Risks and Issues:</b>',
-                                    enableEditing: false,
-                                    enableRanking: false,
-                                    enableBulkEdit: false,
-                                    showRowActionsColumn: false,
-                                    storeConfig: this.RAIDStoreConfig(),
-                                    columnCfgs : [
-                                        'FormattedID',
-                                        'Name',
-                                        'c_RAIDType',
-                                        'State',
-                                        'c_RAGStatus',
-                                        'ScheduleState'
-                                    ]
-                                },
-                                model: this.model
-                            }
-                        );
-                        rai.down('#header').destroy();
-                   }
                     var children = this.down('#leftCol').add(
                         {
                             xtype: 'rallypopoverchilditemslistview',
@@ -483,12 +424,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         }
                     );
                     children.down('#header').destroy();
-
-                    var cfd = Ext.create('Rally.apps.CFDChart', {
-                        record: this.record,
-                        container: this.down('#rightCol')
-                    });
-                    cfd.generateChart();
 
                     //Now add predecessors and successors
                     var preds = this.down('#rightCol').add(
@@ -557,6 +492,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         }
                     );
                     succs.down('#header').destroy();
+                    
+                    var cfd = Ext.create('Rally.apps.CFDChart', {
+                        record: this.record,
+                        container: this.down('#rightCol')
+                    });
+                    cfd.generateChart();
                 }
             },
 
@@ -566,6 +507,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     switch (this.record.self.ordinal) {
                         case 1:
                             return  {
+                                sorters: [{
+                                    property: 'DragAndDropRank',
+                                    direction: 'ASC'
+                                }],
                                 filters: {
                                     property: 'c_RAIDType',
                                     operator: '=',
@@ -585,6 +530,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
                 if (this.record.hasField('c_RAIDType') && this.record.hasField('c_RAGStatus')){
                             return {
+                                sorters: [{
+                                    property: 'DragAndDropRank',
+                                    direction: 'ASC'
+                                }],
                                 filters: [{
                                     property: 'c_RAIDType',
                                     operator: '!=',
@@ -728,7 +677,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             .attr("y",idx * gApp.MIN_ROW_HEIGHT)
                             .attr("text-anchor", 'start')
                             .text(state.get('Name'));
-                    })
+                    });
                 },
                 failure: function(error) {
                     debugger;
@@ -769,7 +718,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 }
             }
         });
-        var buttonTxt = "Colour Codes"
+        var buttonTxt = "Colour Codes";
         if (!gApp.down('#colourButton')){
             hdrBox.add({
                 xtype: 'rallybutton',
@@ -784,7 +733,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         d3.select("#colourLegend").attr("visibility","visible");
                         d3.select("#tree").attr("visibility", "hidden");
                     } else {
-                        this.setText(buttonTxt)
+                        this.setText(buttonTxt);
                         this.ticked = false;
                         d3.select("#colourLegend").attr("visibility","hidden");
                         d3.select("#tree").attr("visibility", "visible");
@@ -808,6 +757,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         _.each(data, function(record) {
             if (record.get('Children')){                                //Limit this to feature level and not beyond.
                 collectionConfig = {
+                    sorters: [{
+                        property: 'DragAndDropRank',
+                        direction: 'ASC'
+                    }],
                     fetch: gApp.STORE_FETCH_FIELD_LIST,
                     callback: function(records, operation, success) {
                         //Start the recursive trawl down through the levels
@@ -822,7 +775,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     }];
                 }
                 record.getCollection( 'Children').load( collectionConfig );
-            };
+            }
         });
     },
 
@@ -895,7 +848,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         //Routines to manipulate the types
 
     _getSelectedOrdinal: function() {
-        return gApp.down('#piType').lastSelection[0].get('Ordinal')
+        return gApp.down('#piType').lastSelection[0].get('Ordinal');
     },
 
      _getTypeList: function(highestOrdinal) {
