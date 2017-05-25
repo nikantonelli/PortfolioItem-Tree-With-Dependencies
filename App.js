@@ -8,7 +8,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         defaultSettings: {
             keepTypesAligned: true,
             hideArchived: true,
-            showDependencies: true
+            showDependencies: false
         }
     },
     getSettingsFields: function() {
@@ -260,7 +260,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         gApp._hideLinks();
         gApp._dependenciesVisible = true;
         if (d.data.dependencies) {
-            debugger;
+//            debugger;
             d.data.dependencies.select('link').attr("visibility","visible");
             if (d.data.dependencyError) {
                 Rally.ui.notify.Notifier.showError({message: 'Warning:' + d.data.record.get('FormattedID') + ' has dependencies outside current selection'});
@@ -333,7 +333,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
                             var ypos = array[index].getScreenCTM().f;
                             card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
-                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos)  //Tree is rotated
+                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
                         }
                     }
                 });
@@ -728,7 +728,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             .attr("y",idx * gApp.MIN_ROW_HEIGHT)
                             .attr("text-anchor", 'start')
                             .text(state.get('Name'));
-                    })
+                    });
                 },
                 failure: function(error) {
                     debugger;
@@ -769,7 +769,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 }
             }
         });
-        var buttonTxt = "Colour Codes"
+        var buttonTxt = "Colour Codes";
         if (!gApp.down('#colourButton')){
             hdrBox.add({
                 xtype: 'rallybutton',
@@ -784,7 +784,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         d3.select("#colourLegend").attr("visibility","visible");
                         d3.select("#tree").attr("visibility", "hidden");
                     } else {
-                        this.setText(buttonTxt)
+                        this.setText(buttonTxt);
                         this.ticked = false;
                         d3.select("#colourLegend").attr("visibility","hidden");
                         d3.select("#tree").attr("visibility", "visible");
@@ -808,6 +808,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         _.each(data, function(record) {
             if (record.get('Children')){                                //Limit this to feature level and not beyond.
                 collectionConfig = {
+                    sorters: [
+                        {
+                            property: 'DragAndDropRank',
+                            direction: 'ASC'
+                        }
+                    ],
                     fetch: gApp.STORE_FETCH_FIELD_LIST,
                     callback: function(records, operation, success) {
                         //Start the recursive trawl down through the levels
@@ -822,7 +828,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     }];
                 }
                 record.getCollection( 'Children').load( collectionConfig );
-            };
+            }
         });
     },
 
@@ -895,7 +901,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         //Routines to manipulate the types
 
     _getSelectedOrdinal: function() {
-        return gApp.down('#piType').lastSelection[0].get('Ordinal')
+        return gApp.down('#piType').lastSelection[0].get('Ordinal');
     },
 
      _getTypeList: function(highestOrdinal) {
