@@ -389,7 +389,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             ],
             listeners: {
                 afterrender: function() {
-
+                    this.down('#leftCol').add(
+                        {
+                                xtype: 'rallycard',
+                                record: this.record,
+                                fields: gApp.CARD_DISPLAY_FIELD_LIST,
+                                showAge: true,
+                                resizable: true
+                        }
+                    );
                     var children = this.down('#leftCol').add(
                         {
                             xtype: 'rallypopoverchilditemslistview',
