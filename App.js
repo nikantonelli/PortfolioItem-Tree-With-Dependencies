@@ -26,11 +26,17 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             labelAlign: 'top'
         },
         {
-            name: 'showDependencies',
+            name: 'showExtraText',
             xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show Dependencies on Hover',
+            fieldLabel: 'Add Project and Prelim Size to titles',
             labelAlign: 'top'
-        }
+        },
+        // {
+        //     name: 'showDependencies',
+        //     xtype: 'rallycheckboxfield',
+        //     fieldLabel: 'Show Dependencies on Hover',
+        //     labelAlign: 'top'
+        // }
         ];
         return returned;
     },
@@ -61,6 +67,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'CreationDate',
                 'PercentDoneByStoryCount',
                 'PercentDoneByStoryPlanEstimate',
+                'PredecessorsAndSuccessors',
                 'State',
                 'PreliminaryEstimate',
                 'Description',
@@ -68,6 +75,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'Predecessors',
                 'Successors',
                 'OrderIndex',   //Used to get the State field order index
+                'Release',
+                'Iteration',
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
@@ -83,6 +92,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'Project',
                 'PercentDoneByStoryCount',
                 'PercentDoneByStoryPlanEstimate',
+                'PredecessorsAndSuccessors',
                 'State',
                 'c_ProjectIDOBN',
                 'c_QRWP',
@@ -218,8 +228,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
               .attr("y", function(d) { return gApp._textYPos(d);})
 //              .style("text-anchor", "start" )
               .style("text-anchor",  function(d) { return gApp._textAnchor(d);})
-              .text(function(d) {  return d.children?d.data.Name : d.data.Name + ' ' + (d.data.record && d.data.record.data.Name); });
-
+              .text(function(d) {  
+                  var titleText = d.children?d.data.Name : d.data.Name + ' ' + (d.data.record && d.data.record.data.Name); 
+                  if (gApp.getSetting('showExtraText')) {
+                      var prelimName = d.data.record.get('PreliminaryEstimate') ? d.data.record.get('PreliminaryEstimate').Name : 'Unsized!';
+                      titleText += ' (' + d.data.record.get('Project').Name + ' : ' + prelimName + ')';
+                  }
+                  return titleText;
+                });
         //Now put in, but hide, all the dependency links
 //        node.addPredecessors(g.selectAll("circle"));
 //        node.addSuccessors();
@@ -230,13 +246,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     _textYPos: function(d){
-        return (d.children  && d.parent) ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
+        return d.children  ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
+//        return (d.children  && d.parent) ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
     },
 
     _textAnchor: function(d){
 //        if (d.children && d.parent) return 'middle';
         if (!d.children && d. parent) return 'start';
-        return 'end';
+        return 'middle';
     },
 
     _hideLinks: function(){
@@ -254,10 +271,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     _dependenciesVisible: false,
 
     _showDependencies: function(d) {
-        if (!this.getSetting('showDependencies'))
-            return;
-        
-        gApp._hideLinks();
+        return;
         gApp._dependenciesVisible = true;
         if (d.data.dependencies) {
 //            debugger;
@@ -294,17 +308,22 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     },
     
-    _hideDependencies: function(d) {
-        if (!this.getSetting('showDependencies'))
-            return;
-
-        gApp._showLinks();            
+    _hideDependencies: function(d) {          
         gApp._dependenciesVisible = false;   //Due to async nature, we need to log this
         if (d.dependencies) {
             d.dependencies.select('link').attr("visibility","hidden");
         }
     },
     
+    _toggleDependencies: function() {
+        if (gApp._dependenciesVisible){
+            gApp._showLinks();
+            gApp._hideDependencies();
+        } else {
+            gApp._hideLinks();
+            gApp._showDependencies();
+        }
+    },
     _nodeMouseOut: function(node, index,array){
         if (node.card) node.card.hide();
         gApp._hideDependencies(node);
@@ -354,7 +373,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             autoShow: true,
             draggable: true,
             closable: true,
-            width: 1100,
+            width: 1200,
             height: 800,
             style: {
                 border: "thick solid #000000"
@@ -371,7 +390,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 {
                     xtype: 'container',
                     itemId: 'leftCol',
-                    width: 500,
+                    width: 700,
                 },
                 // {
                 //     xtype: 'container',
@@ -381,7 +400,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 {
                     xtype: 'container',
                     itemId: 'rightCol',
-                    width: 580  //Leave 20 for scroll bar
+                    width: 500  //Leave 20 for scroll bar
                 }
             ],
             listeners: {
@@ -474,7 +493,27 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                         text: '% By Est',
                                         dataIndex: 'PercentDoneByStoryPlanEstimate'
                                     },
+                                    {
+                                        text: 'Timebox',
+                                        dataIndex: 'Project',  //Just so that the renderer gets called
+                                        minWidth: 80,
+                                        renderer: function (value, metaData, record, rowIdx, colIdx, store) {
+                                            var retval = '';
+                                            // debugger;
+                                                if (record.hasField('Iteration')) {
+                                                    retval = record.get('Iteration')?record.get('Iteration').Name:'NOT PLANNED';
+                                                } else if (record.hasField('Release')) {
+                                                    retval = record.get('Release')?record.get('Release').Name:'NOT PLANNED';
+                                                } else if (record.hasField('PlannedStartDate')){
+                                                    retval = Ext.Date.format(record.get('PlannedStartDate'), 'd/M/Y') + ' - ' + Ext.Date.format(record.get('PlannedEndDate'), 'd/M/Y')
+                                                }
+                                                console.log(record.get('FormattedID'), " returning: ", retval);
+                                            return (retval);
+                                        }
+                                    },
                                     'State',
+                                    'PredecessorsAndSuccessors',
+                                    'Project',
                                     'c_RAGSatus',
                                     'ScheduleState'
                                 ]
@@ -570,13 +609,18 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     property: 'c_RAIDType',
                                     operator: '=',
                                     value: ''
-                                }
+                                },
+                                fetch: gApp.STORE_FETCH_FIELD_LIST
                             };
                         default:
-                            return {};
+                            return {
+                                fetch: gApp.STORE_FETCH_FIELD_LIST                                
+                            };
                     }
                 }
-                else return {};
+                else return {
+                    fetch: gApp.STORE_FETCH_FIELD_LIST                                                    
+                };
             },
 
             //This is specific to customer. Features are used as RAIDs as well.
@@ -610,7 +654,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
-        var hdrBox = this.insert (0,{
+        var hdrBoxConfig = {
             xtype: 'container',
             itemId: 'headerBox',
             layout: 'hbox',
@@ -638,7 +682,19 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     }
                 },
             ]
-        });
+        };
+        if (this.getSetting('showDependencies')){
+            hdrBoxConfig.items.push(
+                {
+                    xtype: 'rallybutton',
+                    text: 'Toggle Dependencies',
+                    handler: function() {
+                        gApp._toggleDependencies();
+                    }
+                }
+            );
+        }
+        var hdrBox = this.insert (0,hdrBoxConfig);
     },
 
     numStates: [],
