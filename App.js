@@ -94,6 +94,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'PercentDoneByStoryPlanEstimate',
                 'PredecessorsAndSuccessors',
                 'State',
+                //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
                 'c_RAGStatus'
@@ -208,6 +209,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("r", gApp.NODE_CIRCLE_SIZE)
             .attr("class", function (d) {   //Work out the individual dot colour
                 var lClass = "dotOutline"; // Might want to use outline to indicate something later
+
+                if (d.data.record.get('Successors').Count > 0) lClass = "gotDependencies";
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
                     lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
@@ -226,7 +229,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
               .attr("visible", false)
               .attr("x", function(d) { return gApp._textXPos(d);})
               .attr("y", function(d) { return gApp._textYPos(d);})
-//              .style("text-anchor", "start" )
+              .attr("class", function (d) {   //Work out the individual dot colour
+                var lClass = "normalText"; // Might want to use outline to indicate something later
+
+                if (d.data.record.get('Successors').Count > 0) lClass = "gotSuccText";
+                if (d.data.record.get('Predecessors').Count > 0) lClass = "gotPredText";    //Predecessors take precedence
+                return lClass;
+              })
+
+                //              .style("text-anchor", "start" )
               .style("text-anchor",  function(d) { return gApp._textAnchor(d);})
               .text(function(d) {  
                   var titleText = d.children?d.data.Name : d.data.Name + ' ' + (d.data.record && d.data.record.data.Name); 

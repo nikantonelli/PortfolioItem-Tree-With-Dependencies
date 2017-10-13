@@ -36,7 +36,7 @@
   stroke-width: 3px;
 }
 .error--node  {
-  fill: #f00;
+  fill: rgb(0, 0, 0);
 }
 .data--errors  {
   stroke: #f00;
@@ -60,6 +60,23 @@
 .dotOutline {
   stroke: #000;
   stroke-width: 2px;
+}
+
+.gotDependencies {
+  stroke: #f00;
+  stroke-width: 2px;
+  fill: #ff0000;
+}
+
+.gotSuccText {
+  fill: #888800;
+}
+.gotPredText {
+  fill: #ff0000;
+}
+
+.text.normalText {
+  color: #0f0;
 }
 
 .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
