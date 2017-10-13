@@ -283,7 +283,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         return;
         gApp._dependenciesVisible = true;
         if (d.data.dependencies) {
-//            debugger;
             d.data.dependencies.select('link').attr("visibility","visible");
             if (d.data.dependencyError) {
                 Rally.ui.notify.Notifier.showError({message: 'Warning:' + d.data.record.get('FormattedID') + ' has dependencies outside current selection'});
@@ -508,7 +507,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                         minWidth: 80,
                                         renderer: function (value, metaData, record, rowIdx, colIdx, store) {
                                             var retval = '';
-                                            // debugger;
                                                 if (record.hasField('Iteration')) {
                                                     retval = record.get('Iteration')?record.get('Iteration').Name:'NOT PLANNED';
                                                 } else if (record.hasField('Release')) {
@@ -516,7 +514,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                                 } else if (record.hasField('PlannedStartDate')){
                                                     retval = Ext.Date.format(record.get('PlannedStartDate'), 'd/M/Y') + ' - ' + Ext.Date.format(record.get('PlannedEndDate'), 'd/M/Y')
                                                 }
-                                                console.log(record.get('FormattedID'), " returning: ", retval);
                                             return (retval);
                                         }
                                     },
@@ -734,21 +731,22 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
         //Add some legend specific sprites here
 
-        _.each(modelList, function(modeltype, idx) {
-            gApp._addColourBox(modeltype,idx);
+        _.each(modelList, function(modeltype) {
+            gApp._addColourBox(modeltype);
         });
 
     },
 
-    _addColourBox: function(modeltype, modelNum) {
+    _addColourBox: function(modeltype) {
 //        var colourBox = d3.select('#colourLegend' + modelNum);
+        
         var colours = d3.select('#colourLegend');
 //        if (!colourBox) {
             colours.append("g")
-                .attr("id", "colourLegend" + modelNum)
-                .attr("transform","translate(" + (gApp.MIN_COLUMN_WIDTH*modelNum) + ",10)");
+                .attr("id", "colourLegend" + modeltype.Ordinal)
+                .attr("transform","translate(" + (gApp.MIN_COLUMN_WIDTH*modeltype.Ordinal) + ",10)");
 //        }
-        var colourBox = d3.select('#colourLegend' + modelNum);
+        var colourBox = d3.select('#colourLegend' + modeltype.Ordinal);
             var lCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             colourBox.append("text")
                 .attr("dx", -gApp.NODE_CIRCLE_SIZE )
@@ -778,7 +776,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             );
             typeStore.load().then({ 
                 success: function(records){
-                    gApp.numStates[modelNum] = records.length;
+                    gApp.numStates[modeltype.Ordinal] = records.length;
                     _.each(records, function(state){
                         var idx = state.get('OrderIndex');
                         colourBox.append("circle")
@@ -974,7 +972,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         _.each(gApp._typeStore.data.items, function(type) {
             //Only push types below that selected
             if (type.data.Ordinal <= (highestOrdinal ? highestOrdinal: 0) )
-                piModels.push({ 'type': type.data.TypePath.toLowerCase(), 'Name': type.data.Name, 'ref': type.data._ref});
+                piModels.push({ 'type': type.data.TypePath.toLowerCase(), 'Name': type.data.Name, 'ref': type.data._ref, 'Ordinal': type.data.Ordinal});
         });
         return piModels;
     },
