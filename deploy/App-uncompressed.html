@@ -522,7 +522,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                                 } else if (record.hasField('Release')) {
                                                     retval = record.get('Release')?record.get('Release').Name:'NOT PLANNED';
                                                 } else if (record.hasField('PlannedStartDate')){
-                                                    retval = Ext.Date.format(record.get('PlannedStartDate'), 'd/M/Y') + ' - ' + Ext.Date.format(record.get('PlannedEndDate'), 'd/M/Y')
+                                                    retval = Ext.Date.format(record.get('PlannedStartDate'), 'd/M/Y') + ' - ' + Ext.Date.format(record.get('PlannedEndDate'), 'd/M/Y');
                                                 }
                                             return (retval);
                                         }
