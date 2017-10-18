@@ -2,7 +2,7 @@
     var Ext = window.Ext4 || window.Ext;
 
 Ext.define('Rally.apps.PortfolioItemTree.app', {
-    extend: 'Rally.app.App',
+    extend: 'Rally.app.TimeboxScopedApp',
     componentCls: 'app',
     config: {
         defaultSettings: {
@@ -75,6 +75,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'Predecessors',
                 'Successors',
                 'OrderIndex',   //Used to get the State field order index
+                'PortfolioItemType',
+                'Ordinal',
                 'Release',
                 'Iteration',
                 //Customer specific after here. Delete as appropriate
@@ -658,7 +660,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
     //Entry point after creation of render box
     _onElementValid: function(rs) {
-
+        gApp.timeboxScope = gApp.getContext().getTimeboxScope(); 
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
         var hdrBoxConfig = {
@@ -808,6 +810,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         gApp.redrawTree();
     },
 
+    onTimeboxScopeChange: function(newTimebox) {
+        console.log('Changed timebox:', newTimebox)
+        this.callParent(arguments);
+        gApp.timeboxScope = newTimebox;
+        if ( gApp._nodes) gApp._nodes = [];
+        debugger;
+        gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+    },
+
     _kickOff: function() {
         var ptype = gApp.down('#piType');
         var hdrBox = gApp.down('#headerBox');
@@ -831,9 +842,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 context: gApp.getContext().getDataContext()
             },
             listeners: {
-                select: function(selector,store) {
+                select: function(selector,record) {
                     if ( gApp._nodes) gApp._nodes = [];
-                    gApp._getArtifacts(store);
+                    console.log('selector:', record);
+                    gApp._getArtifacts(record);
                 }
             }
         });
@@ -895,6 +907,13 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         value: false
                     }];
                 }
+                if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') &&
+                    (record.get('PortfolioItemType').Ordinal < 2)  //Only for lowest level item type
+                )
+                {
+                    collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
+                }
+
                 record.getCollection( 'Children').load( collectionConfig );
             }
         });
