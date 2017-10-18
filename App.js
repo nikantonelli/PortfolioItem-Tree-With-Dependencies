@@ -31,12 +31,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             fieldLabel: 'Add Project and Prelim Size to titles',
             labelAlign: 'top'
         },
-        // {
-        //     name: 'showDependencies',
-        //     xtype: 'rallycheckboxfield',
-        //     fieldLabel: 'Show Dependencies on Hover',
-        //     labelAlign: 'top'
-        // }
+        {
+            name: 'showDependencies',
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show Dependencies on Hover',
+            labelAlign: 'top'
+        }
         ];
         return returned;
     },
@@ -210,7 +210,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("class", function (d) {   //Work out the individual dot colour
                 var lClass = "dotOutline"; // Might want to use outline to indicate something later
 
-                if (d.data.record.get('Successors').Count > 0) lClass = "gotDependencies";
+                if (d.data.record.get('PredecessorsAndSuccessors') && d.data.record.get('PredecessorsAndSuccessors').Count > 0) lClass = "gotDependencies";
                 if (d.data.record.data.ObjectID){
                     if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
                     lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
@@ -282,7 +282,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     _dependenciesVisible: false,
 
     _showDependencies: function(d) {
-        return;
         gApp._dependenciesVisible = true;
         if (d.data.dependencies) {
             d.data.dependencies.select('link').attr("visibility","visible");
@@ -514,7 +513,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                                 } else if (record.hasField('Release')) {
                                                     retval = record.get('Release')?record.get('Release').Name:'NOT PLANNED';
                                                 } else if (record.hasField('PlannedStartDate')){
-                                                    retval = Ext.Date.format(record.get('PlannedStartDate'), 'd/M/Y') + ' - ' + Ext.Date.format(record.get('PlannedEndDate'), 'd/M/Y')
+                                                    retval = Ext.Date.format(record.get('PlannedStartDate'), 'd/M/Y') + ' - ' + Ext.Date.format(record.get('PlannedEndDate'), 'd/M/Y');
                                                 }
                                             return (retval);
                                         }
@@ -804,6 +803,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     _nodes: [],
+
+    onSettingsUpdate: function() {
+        gApp.redrawTree();
+    },
 
     _kickOff: function() {
         var ptype = gApp.down('#piType');
