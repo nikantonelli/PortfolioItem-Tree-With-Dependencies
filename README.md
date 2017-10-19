@@ -11,7 +11,7 @@ If you hover over a particular dot, it will give you a 'rallycard' style pop-up.
 you will see the child user stories.
 
 The colour coding shows the 'state' of the item and the edge of the circle will be red if there are dependencies of either 
-type: successors or predecessors. The text of the item with be red for those with predecessors and a strnage green colour
+type: successors or predecessors. The text of the item with be red for those with predecessors and a strange green colour
 for those with successors
 
 The idea behind this is that you might want to set up a consistent view (via either the hover or via the pop-up) to explore the status graphically without loads of clicks.
