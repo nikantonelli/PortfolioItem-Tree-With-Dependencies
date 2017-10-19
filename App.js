@@ -819,7 +819,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     onTimeboxScopeChange: function(newTimebox) {
-        console.log('Changed timebox:', newTimebox)
+        console.log('Changed timebox:', newTimebox);
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
         if ( gApp._nodes) gApp._nodes = [];
@@ -946,7 +946,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     callback: function(records, operation, success) {
                         //Start the recursive trawl down through the levels
                         if (records.length)  gApp._getArtifacts(records);
-                    }
+                    },
+                    filters: []
                 };
                 if (gApp.getSetting('hideArchived')) {
                     collectionConfig.filters = [{
@@ -960,7 +961,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
                         Ext.Array.each(gApp.advFilters,function(filter){
                             collectionConfig.filters.push(filter);
-                        })
+                        });
                     }
 
                     if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') 
