@@ -8,7 +8,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         defaultSettings: {
             keepTypesAligned: true,
             hideArchived: true,
-            showDependencies: false
+            showDependencies: false,
+            showFilter: true
         }
     },
     getSettingsFields: function() {
@@ -36,6 +37,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Show Dependencies on Hover',
             labelAlign: 'top'
+        },{
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show Advanced filter',
+            name: 'showFilter'
         }
         ];
         return returned;
@@ -104,7 +109,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             ],
 
     items: [
-        {
+        {  
+            xtype: 'container',
+            itemId: 'filterBox'
+        },{
             xtype: 'container',
             itemId: 'rootSurface',
             margin: '5 5 5 5',
@@ -668,10 +676,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             itemId: 'headerBox',
             layout: 'hbox',
             items: [
-                {
-                    xtype: 'container',
-                    itemId: 'filterBox'
-                },
+                
                 {
                     xtype:  'rallyportfolioitemtypecombobox',
                     itemId: 'piType',
@@ -692,6 +697,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 },
             ]
         };
+        
         if (this.getSetting('showDependencies')){
             hdrBoxConfig.items.push(
                 {
@@ -702,8 +708,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     }
                 }
             );
-        }
+        }   
+
         var hdrBox = this.insert (0,hdrBoxConfig);
+        
     },
 
     numStates: [],
@@ -815,8 +823,21 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
         if ( gApp._nodes) gApp._nodes = [];
-        debugger;
         gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+    },
+
+    _onFilterChange: function(inlineFilterButton){
+        gApp.advFilters = inlineFilterButton.getTypesAndFilters().filters;
+        inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
+        if ( gApp._nodes) {
+            gApp._nodes = [];
+
+            gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+        }
+    },
+
+    _onFilterReady: function(inlineFilterPanel) {
+        gApp.down('#filterBox').add(inlineFilterPanel);
     },
 
     _kickOff: function() {
@@ -849,6 +870,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 }
             }
         });
+        
         var buttonTxt = "Colour Codes";
         if (!gApp.down('#colourButton')){
             hdrBox.add({
@@ -873,7 +895,33 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             });
         }
 
-//        gApp._getArtifacts(ptype);
+        if(gApp.getSetting('showFilter') && !gApp.down('#inlineFilter')){
+            hdrBox.add({
+                xtype: 'rallyinlinefiltercontrol',
+                name: 'inlineFilter',
+                itemId: 'inlineFilter',
+                margin: '10 0 5 20',                           
+                context: gApp.getContext(),
+                height:26,
+                inlineFilterButtonConfig: {
+                    stateful: true,
+                    stateId: gApp.getContext().getScopedStateId('inline-filter'),
+                    context: gApp.getContext(),
+                    modelNames: ['PortfolioItem/' + ptype.rawValue],
+                    filterChildren: false,
+                    inlineFilterPanelConfig: {
+                        quickFilterPanelConfig: {
+                            defaultFields: ['ArtifactSearch', 'Owner']
+                        }
+                    },
+                    listeners: {
+                        inlinefilterchange: this._onFilterChange,
+                        inlinefilterready: this._onFilterReady,
+                        scope: this
+                    } 
+                }
+            });
+        }
     },
 
 
@@ -907,13 +955,20 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         value: false
                     }];
                 }
-                if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') &&
-                    (record.get('PortfolioItemType').Ordinal < 2)  //Only for lowest level item type
-                )
-                {
-                    collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
-                }
 
+                if (record.get('PortfolioItemType').Ordinal < 2) { //Only for lowest level item type)
+                    if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
+                        Ext.Array.each(gApp.advFilters,function(filter){
+                            collectionConfig.filters.push(filter);
+                        })
+                    }
+
+                    if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') 
+                    )
+                    {
+                        collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
+                    }
+                }
                 record.getCollection( 'Children').load( collectionConfig );
             }
         });
