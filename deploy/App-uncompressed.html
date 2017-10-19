@@ -388,13 +388,30 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 node.card = card;
             }
             node.card.show();
-            gApp._showDependencies(node);
+//            gApp._showDependencies(node);
         }
+    },
+
+    _nodePopup: function(node, index, array) {
+        var popover = Ext.create('Rally.ui.popover.DependenciesPopover',
+            {
+                record: node.data.record,
+                target: node.card.el
+            }
+        );
     },
 
     _nodeClick: function (node,index,array) {
         if (!(node.data.record.data.ObjectID)) return; //Only exists on real items
         //Get ordinal (or something ) to indicate we are the lowest level, then use "UserStories" instead of "Children"
+        if (event.shiftKey) { 
+            gApp._nodePopup(node,index,array); 
+        }  else {
+            gApp._dataPanel(node,index,array);
+        }
+    },
+
+    _dataPanel: function(node, index, array) {        
         var childField = node.data.record.hasField('Children')? 'Children' : 'UserStories';
         var model = node.data.record.hasField('Children')? node.data.record.data.Children._type : 'UserStory';
 
@@ -911,12 +928,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 name: 'inlineFilter',
                 itemId: 'inlineFilter',
                 margin: '10 0 5 20',                           
-                context: gApp.getContext(),
+                context: this.getContext(),
                 height:26,
                 inlineFilterButtonConfig: {
                     stateful: true,
-                    stateId: gApp.getContext().getScopedStateId('inline-filter'),
-                    context: gApp.getContext(),
+                    stateId: this.getContext().getScopedStateId('inline-filter'),
+                    context: this.getContext(),
                     modelNames: ['PortfolioItem/' + ptype.rawValue],
                     filterChildren: false,
                     inlineFilterPanelConfig: {
