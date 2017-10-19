@@ -40,7 +40,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         },{
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Show Advanced filter',
-            name: 'showFilter'
+            name: 'showFilter',
+            labelAlign: 'top'
         }
         ];
         return returned;
