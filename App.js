@@ -205,10 +205,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .enter().append("path")
             .attr("class", function(d) { return d.data.invisibleLink? "invisible--link" :  "local--link" ;})
             .attr("d", function(d) {
-                    return "M" + d.y + "," + d.x
-                        + "C" + (d.parent.y + 100) + "," + d.x
-                        + " " + (d.parent.y + 100) + "," + d.parent.x
-                        + " " + d.parent.y + "," + d.parent.x;
+                    return "M" + d.y + "," + d.x +
+                         "C" + (d.parent.y + 100) + "," + d.x +
+                         " " + (d.parent.y + 100) + "," + d.parent.x +
+                         " " + d.parent.y + "," + d.parent.x;
             })
             ;
         var node = g.selectAll(".node")
@@ -261,8 +261,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     if (!gApp._findNode(gApp._nodes, record.data)) {
                                         outOfScope = true;
                                     }
-                                })
-                            })
+                                });
+                            });
                             //When you get here, outOfScope will indicate that there are successors or predecessors out of scope
                             // If true, make the text blink (Note: async behaviour)
                             console.log(d);
@@ -296,14 +296,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     _textYPos: function(d){
-        return d.children  ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
-//        return (d.children  && d.parent) ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
+        return d.children  ? -5 : 0;
+//        return d.children  ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
+        //        return (d.children  && d.parent) ? -(gApp.NODE_CIRCLE_SIZE + 5) : 0;
     },
 
     _textAnchor: function(d){
 //        if (d.children && d.parent) return 'middle';
         if (!d.children && d. parent) return 'start';
-        return 'middle';
+        return 'end';
     },
 
     _hideLinks: function(){
@@ -593,72 +594,72 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     cfd.generateChart();
 
                     //Now add predecessors and successors
-                    var preds = this.down('#rightCol').add(
-                        {
-                            xtype: 'rallypopoverchilditemslistview',
-                            target: array[index],
-                            record: this.record,
-                            childField: 'Predecessors',
-                            addNewConfig: null,
-                            gridConfig: {
-                                title: '<b>Predecessors:</b>',
-                                enableEditing: false,
-                                enableRanking: false,
-                                enableBulkEdit: false,
-                                showRowActionsColumn: false,
-                                columnCfgs : [
-                                'FormattedID',
-                                'Name',
-                                {
-                                    text: '% By Count',
-                                    dataIndex: 'PercentDoneByStoryCount'
-                                },
-                                {
-                                    text: '% By Est',
-                                    dataIndex: 'PercentDoneByStoryPlanEstimate'
-                                },
-                                'State',
-                                'c_RAGSatus',
-                                'ScheduleState'
-                                ]
-                            },
-                            model: this.model
-                        }
-                    );
-                    preds.down('#header').destroy();
-                    var succs = this.down('#rightCol').add(
-                        {
-                            xtype: 'rallypopoverchilditemslistview',
-                            target: array[index],
-                            record: this.record,
-                            childField: 'Successors',
-                            addNewConfig: null,
-                            gridConfig: {
-                                title: '<b>Successors:</b>',
-                                enableEditing: false,
-                                enableRanking: false,
-                                enableBulkEdit: false,
-                                showRowActionsColumn: false,
-                                columnCfgs : [
-                                'FormattedID',
-                                'Name',
-                                {
-                                    text: '% By Count',
-                                    dataIndex: 'PercentDoneByStoryCount'
-                                },
-                                {
-                                    text: '% By Est',
-                                    dataIndex: 'PercentDoneByStoryPlanEstimate'
-                                },
-                                'State',
-                                'c_RAGSatus',
-                                'ScheduleState'
-                                ]
-                            },
-                            model: this.model
-                        }
-                    );
-                    succs.down('#header').destroy();
+                //     var preds = this.down('#rightCol').add(
+                //         {
+                //             xtype: 'rallypopoverchilditemslistview',
+                //             target: array[index],
+                //             record: this.record,
+                //             childField: 'Predecessors',
+                //             addNewConfig: null,
+                //             gridConfig: {
+                //                 title: '<b>Predecessors:</b>',
+                //                 enableEditing: false,
+                //                 enableRanking: false,
+                //                 enableBulkEdit: false,
+                //                 showRowActionsColumn: false,
+                //                 columnCfgs : [
+                //                 'FormattedID',
+                //                 'Name',
+                //                 {
+                //                     text: '% By Count',
+                //                     dataIndex: 'PercentDoneByStoryCount'
+                //                 },
+                //                 {
+                //                     text: '% By Est',
+                //                     dataIndex: 'PercentDoneByStoryPlanEstimate'
+                //                 },
+                //                 'State',
+                //                 'c_RAGSatus',
+                //                 'ScheduleState'
+                //                 ]
+                //             },
+                //             model: this.model
+                //         }
+                //     );
+                //     preds.down('#header').destroy();
+                //     var succs = this.down('#rightCol').add(
+                //         {
+                //             xtype: 'rallypopoverchilditemslistview',
+                //             target: array[index],
+                //             record: this.record,
+                //             childField: 'Successors',
+                //             addNewConfig: null,
+                //             gridConfig: {
+                //                 title: '<b>Successors:</b>',
+                //                 enableEditing: false,
+                //                 enableRanking: false,
+                //                 enableBulkEdit: false,
+                //                 showRowActionsColumn: false,
+                //                 columnCfgs : [
+                //                 'FormattedID',
+                //                 'Name',
+                //                 {
+                //                     text: '% By Count',
+                //                     dataIndex: 'PercentDoneByStoryCount'
+                //                 },
+                //                 {
+                //                     text: '% By Est',
+                //                     dataIndex: 'PercentDoneByStoryPlanEstimate'
+                //                 },
+                //                 'State',
+                //                 'c_RAGSatus',
+                //                 'ScheduleState'
+                //                 ]
+                //             },
+                //             model: this.model
+                //         }
+                //     );
+                //     succs.down('#header').destroy();
                 }
             },
 
@@ -1178,9 +1179,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 pn.append("path")
                                     .attr("class", "predecessor--link")
                                     .attr("d", function(d) {
-                                        return "M" + d.y + "," + d.x
-                                            + "S" + (d.y - 100) + "," + d.x + ((d.x - node.x)/2)
-                                            + " " + node.y + "," + node.x;
+                                        return "M" + d.y + "," + d.x +
+                                             "S" + (d.y - 100) + "," + d.x + ((d.x - node.x)/2) +
+                                             " " + node.y + "," + node.x;
                                 });
 
                             });
