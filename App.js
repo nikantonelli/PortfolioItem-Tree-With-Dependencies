@@ -3,6 +3,7 @@
 
 Ext.define('Rally.apps.PortfolioItemTree.app', {
     extend: 'Rally.app.TimeboxScopedApp',
+    settingsScope: 'project',
     componentCls: 'app',
     config: {
         defaultSettings: {
@@ -33,11 +34,11 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             labelAlign: 'top'
         },
         {
-            name: 'showDependencies',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show Dependencies on Hover',
-            labelAlign: 'top'
-        },{
+        //     name: 'showDependencies',
+        //     xtype: 'rallycheckboxfield',
+        //     fieldLabel: 'Show Dependencies only',
+        //     labelAlign: 'top'
+        // },{
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Show Advanced filter',
             name: 'showFilter',
@@ -179,7 +180,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             tree = d3.tree()
                 .size([viewBoxSize[1], viewBoxSize[0] - (columnWidth + (2*gApp.LEFT_MARGIN_SIZE))])     //Take off a chunk for the text??
                 .separation( function(a,b) {
-                        return ( a.parent == b.parent ? 1 : 1); //All leaves equi-distant
+                        return ( a.parent == b.parent ? 1 : 2); //All leaves equi-distant
                     }
                 );
         }
@@ -242,9 +243,36 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
               .attr("y", function(d) { return gApp._textYPos(d);})
               .attr("class", function (d) {   //Work out the individual dot colour
                 var lClass = "normalText"; // Might want to use outline to indicate something later
-
-                if (d.data.record.get('Successors').Count > 0) lClass = "gotSuccText";
-                if (d.data.record.get('Predecessors').Count > 0) lClass = "gotPredText";    //Predecessors take precedence
+                var deferred = [];
+                if (d.data.record.get('Successors').Count > 0) {
+                    lClass = "gotSuccText";
+                    deferred.push(d.data.record.getCollection('Successors').load());
+                }
+                if (d.data.record.get('Predecessors').Count > 0) {
+                    lClass = "gotPredText";
+                    deferred.push(d.data.record.getCollection('Predecessors').load());
+                }  
+                if (deferred.length > 0) {
+                    Deft.Promise.all(deferred, gApp).then({
+                        success: function(responses) {
+                            var outOfScope = false;
+                            _.each(responses, function(response) {
+                                _.each(response, function(record){
+                                    if (!gApp._findNode(gApp._nodes, record.data)) {
+                                        outOfScope = true;
+                                    }
+                                })
+                            })
+                            //When you get here, outOfScope will indicate that there are successors or predecessors out of scope
+                            // If true, make the text blink (Note: async behaviour)
+                            console.log(d);
+                            debugger;
+                        },
+                        failure: function(error) {
+                            debugger;
+                        }
+                    });
+                }
                 return lClass;
               })
 
@@ -833,11 +861,11 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     _nodes: [],
 
     onSettingsUpdate: function() {
-        gApp.redrawTree();
+        if ( gApp._nodes) gApp._nodes = [];
+        gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
     },
 
     onTimeboxScopeChange: function(newTimebox) {
-        console.log('Changed timebox:', newTimebox);
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
         if ( gApp._nodes) gApp._nodes = [];
@@ -847,9 +875,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     _onFilterChange: function(inlineFilterButton){
         gApp.advFilters = inlineFilterButton.getTypesAndFilters().filters;
         inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
-        if ( gApp._nodes) {
+        if ( gApp._nodes.length) {
             gApp._nodes = [];
-
             gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
         }
     },
@@ -883,7 +910,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             listeners: {
                 select: function(selector,record) {
                     if ( gApp._nodes) gApp._nodes = [];
-                    console.log('selector:', record);
                     gApp._getArtifacts(record);
                 }
             }
@@ -925,7 +951,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     stateful: true,
                     stateId: this.getContext().getScopedStateId('inline-filter'),
                     context: this.getContext(),
-                    modelNames: ['PortfolioItem/' + ptype.rawValue],
+//                    modelNames: ['PortfolioItem/' + ptype.rawValue], //NOOOO!
+                    modelNames: gApp._getModelFromOrd(0), //We actually want to filter the features... YESSSS!
                     filterChildren: false,
                     inlineFilterPanelConfig: {
                         quickFilterPanelConfig: {
@@ -963,16 +990,16 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     fetch: gApp.STORE_FETCH_FIELD_LIST,
                     callback: function(records, operation, success) {
                         //Start the recursive trawl down through the levels
-                        if (records.length)  gApp._getArtifacts(records);
+                        if (success && records.length)  gApp._getArtifacts(records);
                     },
                     filters: []
                 };
                 if (gApp.getSetting('hideArchived')) {
-                    collectionConfig.filters = [{
+                    collectionConfig.filters.push({
                         property: 'Archived',
                         operator: '=',
                         value: false
-                    }];
+                    });
                 }
 
                 if (record.get('PortfolioItemType').Ordinal < 2) { //Only for lowest level item type)
@@ -982,12 +1009,23 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         });
                     }
 
+                    // if (gApp.getSetting('showDependencies') ) {
+                    //     collectionConfig.filters.push(
+                    //         {
+                    //             property: 'PredecessorsAndSuccessors.Count',
+                    //             operator: '!=',
+                    //             value: false
+                    //         }
+                    //     )
+                    // }
+
                     if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') 
                     )
                     {
                         collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
                     }
                 }
+                console.log(record.get('PortfolioItemType').Name, ": ", collectionConfig);
                 record.getCollection( 'Children').load( collectionConfig );
             }
         });
@@ -1004,10 +1042,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         return nodes;
     },
 
-    _findNode: function(nodes, record) {
+    _findNode: function(nodes, recordData) {
         var returnNode = null;
             _.each(nodes, function(node) {
-                if ((node.record && node.record.data._ref) === record._ref){
+                if (node.record && (node.record.data._ref === recordData._ref)){
                      returnNode = node;
                 }
             });
