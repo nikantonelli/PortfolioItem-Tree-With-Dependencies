@@ -95,6 +95,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'Ordinal',
                 'Release',
                 'Iteration',
+                'Milestones',
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
@@ -112,6 +113,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'PercentDoneByStoryPlanEstimate',
                 'PredecessorsAndSuccessors',
                 'State',
+                'Milestones',
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
@@ -247,7 +249,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
         node.append("text")
               .attr("dy", 3)
-              .attr("visible", false)
+//              .attr("visible", false)
+              .attr('id', function(d) { return 'text' + gApp._getNodeId(d);})
               .attr("x", function(d) { return gApp._textXPos(d);})
               .attr("y", function(d) { return gApp._textYPos(d);})
               .attr("class", function (d) {   //Work out the individual dot colour
@@ -273,9 +276,11 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 });
                             });
                             //When you get here, outOfScope will indicate that there are successors or predecessors out of scope
-                            // If true, make the text blink (Note: async behaviour)
-                            console.log(d);
-                            debugger;
+                            // If true, make the text blink (Note: async callback behaviour means you have to d3.select the item again)
+                            if (outOfScope) {
+                                var lg = d3.select('#text' + gApp._getNodeId(d));
+                                lg.call(function(d) { d.attr('class', 'textBlink ' + d.attr('class'));});
+                            }
                         },
                         failure: function(error) {
                             debugger;
@@ -923,31 +928,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     gApp._getArtifacts(record);
                 }
             }
-        });
-        
-        var buttonTxt = "Colour Codes";
-        if (!gApp.down('#colourButton')){
-            hdrBox.add({
-                xtype: 'rallybutton',
-                itemId: 'colourButton',
-                margin: '10 0 5 20',
-                ticked: false,
-                text: buttonTxt,
-                handler: function() {
-                    if (this.ticked === false) {
-                        this.setText('Return');
-                        this.ticked = true;
-                        d3.select("#colourLegend").attr("visibility","visible");
-                        d3.select("#tree").attr("visibility", "hidden");
-                    } else {
-                        this.setText(buttonTxt);
-                        this.ticked = false;
-                        d3.select("#colourLegend").attr("visibility","hidden");
-                        d3.select("#tree").attr("visibility", "visible");
-                    }
-                }
-            });
-        }
+        });   
 
         if(gApp.getSetting('showFilter') && !gApp.down('#inlineFilter')){
             hdrBox.add({
@@ -977,6 +958,67 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 }
             });
         }
+
+        var buttonTxt = "Colour Codes";
+        if (!gApp.down('#colourButton')){
+            hdrBox.add({
+                xtype: 'rallybutton',
+                itemId: 'colourButton',
+                margin: '10 0 5 20',
+                ticked: false,
+                text: buttonTxt,
+                handler: function() {
+                    if (this.ticked === false) {
+                        this.setText('Return');
+                        this.ticked = true;
+                        d3.select("#colourLegend").attr("visibility","visible");
+                        d3.select("#tree").attr("visibility", "hidden");
+                    } else {
+                        this.setText(buttonTxt);
+                        this.ticked = false;
+                        d3.select("#colourLegend").attr("visibility","hidden");
+                        d3.select("#tree").attr("visibility", "visible");
+                    }
+                }
+            });
+        }
+
+        hdrBox.add( {
+            xtype: 'rallybutton',
+            margin: '10 0 5 20',
+            align: 'right',
+            text: 'Page Info',
+            handler: function() {
+                Ext.create('Rally.ui.dialog.Dialog', {
+                    autoShow: true,
+                    draggable: true,
+                    closable: true,
+                    width: 500,
+                    title: 'Information about this app',
+                    items: {
+                        xtype: 'component',
+                        html: 
+                            '<p>Hierarchical Tree View</p>' +
+                            '<p>This app will find all the children of a particular artefact. You can choose the type of artefact, then the artefact itself</p>' +
+                            '<p>The colours of the circles indicate the state of progress from red (those that are not started), through to blue (in their final stages).' +
+                            ' Click on the "Colour Codes" button to see the colour to state mapping for each portfolio item type.</p>' +
+                            '<p>The edge of the circle will be red if there are any dependencies (predecessors or successors) and the colour ' +
+                            'of the associated text will indicate those with predecessors (red text) and those with successors (green text). ' +
+                            'Those with both will appear as having predecessors</p>' +
+                            '<p>If the text is blinking, it means that the relevant dependency is not being shown in this data set. You can investigate this by using &lt;shift&gt;-Click ' +
+                            'on the circle. This will call up an overlay with the relevant dependencies. Clicking on the FormattedID on the artefact will take you to it in' +
+                            ' either the EDP or QDP page (whichever you have enabled for your session)</p>' +
+                            '<p>If you click on the circle without using shift, then a data panel will appear containing more information about that artefact</p>' +
+                            '<p>There are app settings to enable the extra filtering capabilities on the main page, so that you can choose which lowest-level portfolio items to see' +
+                            ' e.g. filter on Owner, Investment Type, etc. </p><p>To filter by release (e.g. to find all those features scheduled into a Program Increment)' +
+                            ' you will need to edit the Page settings to add a Release filter</p>' +
+                            '<p>More information available here: <br/><a href=https://github.com/nikantonelli/PortfolioItem-Tree-With-Dependencies> Github Repo</a></p>'
+                            ,
+                        padding: 10
+                    }
+                });
+            }
+        });
     },
 
 
@@ -1162,6 +1204,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             gApp._nodeTree = null;
         }
         gApp._enterMainApp();
+    },
+
+    _getNodeId: function(d){
+        return d.data.record? d.data.record.get('FormattedID'): Ext.id();
     },
 
     launch: function() {
@@ -18379,19 +18425,19 @@ Object.defineProperty(exports, '__esModule', { value: true });
 .q8-9 {
   fill: #4575b4;
 }
-@keyframes blink {
+@keyframes textBlink {
   50% {
-    opacity: 0.0;
+    opacity: 0.5;
   }
 }
-@-webkit-keyframes blink {
+@-webkit-keyframes textBlink {
   50% {
-    opacity: 0.0;
+    opacity: 0.5;
   }
 }
-.blink {
-  animation: blink 1s step-start 0s infinite;
-  -webkit-animation: blink 1s step-start 0s infinite;
+.textBlink {
+  animation: textBlink 1s step-start 0s infinite;
+  -webkit-animation: textBlink 1s step-start 0s infinite;
 }
 
     </style>
