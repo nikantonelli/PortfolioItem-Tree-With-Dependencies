@@ -91,7 +91,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'c_ProjectIDOBN',
                 'c_QRWP',
                 'c_RAGStatus',
-                'c_ProgressUpdate'
+                'c_ProgressUpdate',
+                'c_RAIDLOGBYTYPE',
+                'c_RAIDSeverityCriticality'
             ],
         CARD_DISPLAY_FIELD_LIST:
             [
@@ -529,8 +531,17 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                         'FormattedID',
                                         'Name',
                                         'c_RAIDType',
-                                        'State',
-                                        'c_RAGStatus',
+                                        'c_RAIDSeverityCriticality',
+                                        {
+                                            text: 'RAG Status',
+                                            dataIndex: 'Project',  //Just so that the renderer gets called
+                                            minWidth: 80,
+                                            renderer: function (value, metaData, record, rowIdx, colIdx, store) {
+                                                var retval = '';
+                                                    debugger;
+                                                return (retval);
+                                            }
+                                        },
                                         'ScheduleState'
                                     ]
                                 },
@@ -696,23 +707,71 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             RAIDStoreConfig: function() {
                 var retval = {};
 
-                if (this.record.hasField('c_RAIDType') && this.record.hasField('c_RAGStatus')){
+                if (this.record.hasField('c_RAIDType')){
                             return {
                                 filters: [{
                                     property: 'c_RAIDType',
                                     operator: '!=',
                                     value: ''
-                                },
-                                {
-                                    property: 'c_RAGStatus',
-                                    operator: '=',
-                                    value: 'RED'
                                 }]
                             };
                     }
-                    else return {};
+                else return {};
+            },
+
+            RISKColour: function(severity, probability, state) {
+                if ( state === 'Closed' || state === 'Cancelled') {
+                    return 'RAID-blue';
                 }
-            });
+
+                if ((state === 'Exceptional') ||
+                    (state ==='High' && (probability === 'Likely' || probability === 'Certain'))
+                ){
+                    return 'RAID-red';
+                }
+
+                if (
+                    (state ==='High' && (probability === 'Unlikely' || probability === 'Possible')) ||
+                    (state ==='Moderate' && (probability === 'Likely' || probability === 'Certain'))
+                ){
+                    return 'RAID-amber';
+                }
+                if (
+                    (state ==='Moderate' && (probability === 'Unlikely' || probability === 'Possible')) ||
+                    (state ==='Low')
+                ){
+                    return 'RAID-green';
+                }
+                
+                var lClass = 'RAID-missing';
+                if (!severity) lClass += '-severity';
+                if (!probability) lClass += '-probability';
+
+                return lClass;
+            },
+
+            AIDColour: function(severity, probability, state) {
+                if ( state === 'Closed' || state === 'Cancelled') {
+                    return 'RAID-blue';
+                }
+
+                if (state === 'Exceptional') 
+                {
+                    return 'RAID-red';
+                }
+
+                if (state === 'High') 
+                {
+                    return 'RAID-amber';
+                }
+
+                if ((state === 'Moderate') ||
+                    (state === 'Low')
+                ){
+                    return 'RAID-green';                    
+                }
+            }
+        });
     },
 
     _dataCheckForItem: function(d){
@@ -985,25 +1044,31 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     draggable: true,
                     closable: true,
                     width: 500,
+                    autoScroll: true,
+                    maxHeight: 800,
                     title: 'Information about this app',
                     items: {
                         xtype: 'component',
                         html: 
-                            '<p>Hierarchical Tree View</p>' +
-                            '<p>This app will find all the children of a particular artefact. You can choose the type of artefact, then the artefact itself</p>' +
+                            '<p class="boldText">Hierarchical Tree View</p>' +
+                            '<p>This app will find all the children of a particular Portfolio artefact. You can choose the type of artefact, then the artefact itself</p>' +
                             '<p>The colours of the circles indicate the state of progress from red (those that are not started), through to blue (in their final stages).' +
                             ' Click on the "Colour Codes" button to see the colour to state mapping for each portfolio item type.</p>' +
+                            '<p class="boldText">Visualising Dependencies</p>' +
                             '<p>The edge of the circle will be red if there are any dependencies (predecessors or successors) and the colour ' +
                             'of the associated text will indicate those with predecessors (red text) and those with successors (green text). ' +
                             'Those with both will appear as having predecessors</p>' +
-                            '<p>If the text is blinking, it means that the relevant dependency is not being shown in this data set. You can investigate this by using &lt;shift&gt;-Click ' +
-                            'on the circle. This will call up an overlay with the relevant dependencies. Clicking on the FormattedID on the artefact will take you to it in' +
+                            '<p>If the text is blinking, it means that the relevant dependency is not being shown in this data set. </p>' +
+                            '<p class="boldText">Exploring the data</p><p>You can investigate dependencies by using &lt;shift&gt;-Click ' +
+                            'on the circle. This will call up an overlay with the relevant dependencies. Clicking on the FormattedID on any artefact will take you to it in' +
                             ' either the EDP or QDP page (whichever you have enabled for your session)</p>' +
                             '<p>If you click on the circle without using shift, then a data panel will appear containing more information about that artefact</p>' +
+                            '<p class="boldText">Filtering</p>' +
                             '<p>There are app settings to enable the extra filtering capabilities on the main page, so that you can choose which lowest-level portfolio items to see' +
                             ' e.g. filter on Owner, Investment Type, etc. </p><p>To filter by release (e.g. to find all those features scheduled into a Program Increment)' +
-                            ' you will need to edit the Page settings to add a Release filter</p>' +
-                            '<p>More information available here: <br/><a href=https://github.com/nikantonelli/PortfolioItem-Tree-With-Dependencies> Github Repo</a></p>'
+                            ' you will need to edit the Page settings (not the App Settings) to add a Release filter</p><p>Filtering by an Agile Central Milestone artefact' +
+                            ' is not yet possible</p>' +
+                            '<p>Source code available here: <br/><a href=https://github.com/nikantonelli/PortfolioItem-Tree-With-Dependencies> Github Repo</a></p>'
                             ,
                         padding: 10
                     }

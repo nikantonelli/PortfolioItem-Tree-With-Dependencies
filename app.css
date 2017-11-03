@@ -75,8 +75,8 @@
   fill: #ff0000;
 }
 
-.text.normalText {
-  color: #0f0;
+.boldText {
+  font-weight: bold;
 }
 
 .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
