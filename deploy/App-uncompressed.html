@@ -20,7 +20,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             hideArchived: true,
             showDependencies: false,
             showFilter: true,
-            allowMultiSelect: false
+            allowMultiSelect: true
         }
     },
     getSettingsFields: function() {
@@ -149,6 +149,14 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             visible: false
         }
     ],
+
+    timer: null,
+    
+    _resetTimer: function(callFunc) {
+        if ( gApp.timer) { clearTimeout(gApp.timer);}
+        gApp.timer = setTimeout(callFunc, 2000);    //Debounce user selections to the tune of two seconds
+    },
+
     //Set the SVG area to the surface we have provided
     _setSVGSize: function(surface) {
         var svg = d3.select('svg');
@@ -313,9 +321,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                   }
                   return titleText;
                 });
-        //Now put in, but hide, all the dependency links
-//        node.addPredecessors(g.selectAll("circle"));
-//        node.addSuccessors();
     },
 
     _textXPos: function(d){
@@ -1007,11 +1012,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 // },
                 change: function(selector,records) {
                     if (records.length > 0) {
-                        this.startAgain(selector,this.valueModels);
+                        gApp._resetTimer(this.startAgain);
                     }
                 }
             },
-            startAgain: function (selector, records) {
+            startAgain: function () {
+                var records = gApp.down('#itemSelector').valueModels;
                 if ( gApp._nodes) gApp._nodes = [];
                 if (records.length > 1) {
                         gApp._nodes.push({'Name': 'Combined View',
@@ -1353,11 +1359,6 @@ console.log( ' Adding: ', data);
                         }
                     });
                 }
-            });
-        };
-        d3.selection.prototype.addSuccessors = function  () {
-            return this.each(function(node, index, array) {
-//                debugger;
             });
         };
     }
