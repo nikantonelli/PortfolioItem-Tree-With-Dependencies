@@ -19,7 +19,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             keepTypesAligned: true,
             hideArchived: true,
             showDependencies: false,
-            showFilter: true
+            showFilter: true,
+            allowMultiSelect: false
         }
     },
     getSettingsFields: function() {
@@ -40,6 +41,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             name: 'showExtraText',
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Add Project and Prelim Size to titles',
+            labelAlign: 'top'
+        },
+        {
+            name: 'allowMultiSelect',
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
             labelAlign: 'top'
         },
         {
@@ -235,13 +242,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("class", function (d) {   //Work out the individual dot colour
                 var lClass = "dotOutline"; // Might want to use outline to indicate something later
 
-                if (d.data.record.get('PredecessorsAndSuccessors') && d.data.record.get('PredecessorsAndSuccessors').Count > 0) lClass = "gotDependencies";
-                if (d.data.record.data.ObjectID){
-                    if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                    lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
-                    lClass += gApp._dataCheckForItem(d);
-                } else {
-                    return d.data.error ? "error--node": "no--errors--done";
+                if (d.data.record.data._ref !== 'root') {
+                    if (d.data.record.get('PredecessorsAndSuccessors') && d.data.record.get('PredecessorsAndSuccessors').Count > 0) lClass = "gotDependencies";
+                    if (d.data.record.data.ObjectID){
+                        if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
+                        lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
+                        lClass += gApp._dataCheckForItem(d);
+                    } else {
+                        return d.data.error ? "error--node": "no--errors--done";
+                    }
                 }
                 return lClass;
             })
@@ -258,36 +267,38 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
               .attr("class", function (d) {   //Work out the individual dot colour
                 var lClass = "normalText"; // Might want to use outline to indicate something later
                 var deferred = [];
-                if (d.data.record.get('Successors').Count > 0) {
-                    lClass = "gotSuccText";
-                    deferred.push(d.data.record.getCollection('Successors').load());
-                }
-                if (d.data.record.get('Predecessors').Count > 0) {
-                    lClass = "gotPredText";
-                    deferred.push(d.data.record.getCollection('Predecessors').load());
-                }  
-                if (deferred.length > 0) {
-                    Deft.Promise.all(deferred, gApp).then({
-                        success: function(responses) {
-                            var outOfScope = false;
-                            _.each(responses, function(response) {
-                                _.each(response, function(record){
-                                    if (!gApp._findNode(gApp._nodes, record.data)) {
-                                        outOfScope = true;
-                                    }
+                if (d.data.record.data._ref !== 'root') {
+                    if (d.data.record.get('Successors').Count > 0) {
+                        lClass = "gotSuccText";
+                        deferred.push(d.data.record.getCollection('Successors').load());
+                    }
+                    if (d.data.record.get('Predecessors').Count > 0) {
+                        lClass = "gotPredText";
+                        deferred.push(d.data.record.getCollection('Predecessors').load());
+                    }  
+                    if (deferred.length > 0) {
+                        Deft.Promise.all(deferred, gApp).then({
+                            success: function(responses) {
+                                var outOfScope = false;
+                                _.each(responses, function(response) {
+                                    _.each(response, function(record){
+                                        if (!gApp._findNode(gApp._nodes, record.data)) {
+                                            outOfScope = true;
+                                        }
+                                    });
                                 });
-                            });
-                            //When you get here, outOfScope will indicate that there are successors or predecessors out of scope
-                            // If true, make the text blink (Note: async callback behaviour means you have to d3.select the item again)
-                            if (outOfScope) {
-                                var lg = d3.select('#text' + gApp._getNodeId(d));
-                                lg.call(function(d) { d.attr('class', 'textBlink ' + d.attr('class'));});
+                                //When you get here, outOfScope will indicate that there are successors or predecessors out of scope
+                                // If true, make the text blink (Note: async callback behaviour means you have to d3.select the item again)
+                                if (outOfScope) {
+                                    var lg = d3.select('#text' + gApp._getNodeId(d));
+                                    lg.call(function(d) { d.attr('class', 'textBlink ' + d.attr('class'));});
+                                }
+                            },
+                            failure: function(error) {
+                                debugger;
                             }
-                        },
-                        failure: function(error) {
-                            debugger;
-                        }
-                    });
+                        });
+                    }
                 }
                 return lClass;
               })
@@ -296,7 +307,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
               .style("text-anchor",  function(d) { return gApp._textAnchor(d);})
               .text(function(d) {  
                   var titleText = d.children?d.data.Name : d.data.Name + ' ' + (d.data.record && d.data.record.data.Name); 
-                  if (gApp.getSetting('showExtraText')) {
+                  if ((d.data.record.data._ref !== 'root') && gApp.getSetting('showExtraText')) {
                       var prelimName = d.data.record.get('PreliminaryEstimate') ? d.data.record.get('PreliminaryEstimate').Name : 'Unsized!';
                       titleText += ' (' + d.data.record.get('Project').Name + ' : ' + prelimName + ')';
                   }
@@ -733,9 +744,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     return 'RAID-blue';
                 }
 
-                if ((state === 'Exceptional') ||
-                    (state ==='High' && (probability === 'Likely' || probability === 'Certain'))
-                ){
+                if (state === 'Exceptional') {
+                    return 'RAID-red textBlink';
+                }
+
+                if (state ==='High' && (probability === 'Likely' || probability === 'Certain'))
+                {
                     return 'RAID-red';
                 }
 
@@ -936,7 +950,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     onSettingsUpdate: function() {
         if ( gApp._nodes) gApp._nodes = [];
-        gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+        gApp._getArtifacts( gApp.down('#itemSelector').valueModels);
     },
 
     onTimeboxScopeChange: function(newTimebox) {
@@ -967,13 +981,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         if ( selector) {
             selector.destroy();
         }
-        hdrBox.insert(2,{
+        var is = hdrBox.insert(2,{
             xtype: 'rallyartifactsearchcombobox',
             fieldLabel: 'Choose Start Item :',
             itemId: 'itemSelector',
+            multiSelect: gApp.getSetting('allowMultiSelect'),
             labelWidth: 100,
             queryMode: 'remote',
-            pageSize: 25,
+            allowNoEntry: false,
+            pageSize: 200,
             width: 600,
             margin: '10 0 5 20',
             stateful: true,
@@ -981,16 +997,38 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             storeConfig: {
                 models: [ 'portfolioitem/' + ptype.rawValue ],
                 fetch: gApp.STORE_FETCH_FIELD_LIST,
-                context: gApp.getContext().getDataContext()
+                context: gApp.getContext().getDataContext(),
+                pageSize: 200,
+                autoLoad: true
             },
             listeners: {
-                select: function(selector,record) {
-                    if ( gApp._nodes) gApp._nodes = [];
-                    gApp._getArtifacts(record);
+                // select: function(selector,records) {
+                //     this.startAgain(selector,this.valueModels);
+                // },
+                change: function(selector,records) {
+                    if (records.length > 0) {
+                        this.startAgain(selector,this.valueModels);
+                    }
                 }
+            },
+            startAgain: function (selector, records) {
+                if ( gApp._nodes) gApp._nodes = [];
+                if (records.length > 1) {
+                        gApp._nodes.push({'Name': 'Combined View',
+                        'record': {
+                            'data': {
+                                '_ref': 'root',
+                                'Name': ''
+                            }
+                        },
+                        'local':true
+                    });
+                }
+                gApp._getArtifacts(records);
             }
         });   
 
+        Ext.util.Observable.capture( is, function(event) { console.log('event', event, arguments);});
         if(gApp.getSetting('showFilter') && !gApp.down('#inlineFilter')){
             hdrBox.add({
                 xtype: 'rallyinlinefiltercontrol',
@@ -1093,7 +1131,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     _getArtifacts: function(data) {
         //On re-entry send an event to redraw
-
+console.log( ' Adding: ', data);
         gApp._nodes = gApp._nodes.concat( gApp._createNodes(data));    //Add what we started with to the node list
 
         this.fireEvent('redrawTree');
@@ -1146,7 +1184,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
                     }
                 }
-                console.log(record.get('PortfolioItemType').Name, ": ", collectionConfig);
                 record.getCollection( 'Children').load( collectionConfig );
             }
         });
@@ -1276,6 +1313,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     _getNodeId: function(d){
+        if (d.data.record.data._ref === 'root') { return Ext.id();}
         return d.data.record? d.data.record.get('FormattedID'): Ext.id();
     },
 
@@ -18367,6 +18405,21 @@ Object.defineProperty(exports, '__esModule', { value: true });
 }
 .boldText {
   font-weight: bold;
+}
+.RAID-blue {
+  fill: #2020FF;
+}
+.RAID-red {
+  fill: #FF2020;
+}
+.RAID-amber {
+  fill: #FF9020;
+}
+.RAID-green {
+  fill: #20FF40;
+}
+.RAID-missing RAID-missing-severity RAID-missing-probability RAID-missing-severity-probability {
+  fill: #000000;
 }
 .q0-3 {
   fill: #fc8d59;

@@ -79,6 +79,26 @@
   font-weight: bold;
 }
 
+.RAID-blue {
+  fill: #2020FF;
+}
+
+.RAID-red {
+  fill: #FF2020;
+}
+
+.RAID-amber {
+  fill: #FF9020;
+}
+
+.RAID-green {
+  fill: #20FF40;
+}
+
+.RAID-missing RAID-missing-severity RAID-missing-probability RAID-missing-severity-probability {
+  fill: #000000;
+}
+
 .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
  .q0-4{fill:rgb(215,25,28)}  .q1-4{fill:rgb(253,174,97)}  .q2-4{fill:rgb(171,217,233)}  .q3-4{fill:rgb(44,123,182)}
  .q0-5{fill:rgb(215,25,28)}  .q1-5{fill:rgb(253,174,97)}  .q2-5{fill:rgb(255,255,191)}  .q3-5{fill:rgb(171,217,233)}  .q4-5{fill:rgb(44,123,182)}
