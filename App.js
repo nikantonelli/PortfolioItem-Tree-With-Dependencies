@@ -1181,7 +1181,9 @@ console.log( ' Adding: ', data);
                     //     )
                     // }
 
-                    if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') 
+                    //Can only do releases and milestones, not interations
+                    if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') ||
+                    (gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'milestone') 
                     )
                     {
                         collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
