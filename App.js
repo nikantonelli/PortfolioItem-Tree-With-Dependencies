@@ -11,7 +11,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             hideArchived: true,
             showDependencies: false,
             showFilter: true,
-            allowMultiSelect: true
+            allowMultiSelect: false
         }
     },
     getSettingsFields: function() {
