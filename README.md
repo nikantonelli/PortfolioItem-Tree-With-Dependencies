@@ -39,8 +39,6 @@ which lowest-level portfolio items to see, e.g. filter on Owner, Investment Type
 To filter by release (e.g. to find all those features scheduled into a Program Increment) you will need to 
 edit the Page settings (not the App Settings) to add a Release filter.
 
-Filtering by an Agile Central Milestone artefact is not yet possible in this app.
-
 It could be extended to include user stories, but that was not really useful info for the top level managers.
 
 ![alt text](https://github.com/nikantonelli/PortfolioItem-Tree/blob/master/Images/overview.png)
