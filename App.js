@@ -1120,7 +1120,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 '<p class="boldText">Filtering</p>' +
                                 '<p>There are app settings to enable the extra filtering capabilities on the main page, so that you can choose which lowest-level portfolio items to see' +
                                 ' e.g. filter on Owner, Investment Type, etc. </p><p>To filter by release (e.g. to find all those features scheduled into a Program Increment)' +
-                                ' you will need to edit the Page settings (not the App Settings) to add a Release filter</p>' +
+                                ' you will need to edit the Page settings (not the App Settings) to add a Release or Milestone filter</p>' +
                                 '<p>Source code available here: <br/><a href=https://github.com/nikantonelli/PortfolioItem-Tree-With-Dependencies> Github Repo</a></p>',
                             padding: 10
                         }
