@@ -9,7 +9,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         defaultSettings: {
             keepTypesAligned: true,
             hideArchived: true,
-            showDependencies: false,
             showFilter: true,
             allowMultiSelect: false
         }
@@ -41,11 +40,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             labelAlign: 'top'
         },
         {
-        //     name: 'showDependencies',
-        //     xtype: 'rallycheckboxfield',
-        //     fieldLabel: 'Show Dependencies only',
-        //     labelAlign: 'top'
-        // },{
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Show Advanced filter',
             name: 'showFilter',
@@ -97,10 +91,10 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
                 'c_QRWP',
-                'c_RAGStatus',
                 'c_ProgressUpdate',
-                'c_RAIDLOGBYTYPE',
-                'c_RAIDSeverityCriticality'
+                'c_RAIDSeverityCriticality',
+                'c_RISKProbabilityLevel',
+                'c_RAIDRequestStatus'   
             ],
         CARD_DISPLAY_FIELD_LIST:
             [
@@ -116,8 +110,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 'Milestones',
                 //Customer specific after here. Delete as appropriate
                 'c_ProjectIDOBN',
-                'c_QRWP',
-                'c_RAGStatus'
+                'c_QRWP'
 
             ],
 
@@ -159,7 +152,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     _enterMainApp: function() {
 
-        gApp._initialiseD3();
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createTree(gApp._nodes);
 
@@ -341,64 +333,9 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         var links = tree.selectAll('path');
         links.attr("visibility","visible");
     },
-
-    _dependenciesVisible: false,
-
-    _showDependencies: function(d) {
-        gApp._dependenciesVisible = true;
-        if (d.data.dependencies) {
-            d.data.dependencies.select('link').attr("visibility","visible");
-            if (d.data.dependencyError) {
-                Rally.ui.notify.Notifier.showError({message: 'Warning:' + d.data.record.get('FormattedID') + ' has dependencies outside current selection'});
-            }
-        }
-        else {
-            // Create dependencies links
-            var r = d.data.record;
-            if (r.get('Predecessors').Count>0){
-                r.getCollection('Predecessors').load({
-                    callback: function(p, op, s) {
-                        if (s)  //Success
-                        {
-                            _.each(p, function(item) {
-                                var n = gApp._findNodeById(gApp._nodes, item.get('_ref'));
-                                if (n) {
-                                    d.data.dependencies.push(n);
-                                } else {
-                                    d.data.dependencyError = true;
-                                    Rally.ui.notify.Notifier.showError({message: 'Warning:' + r.get('FormattedID') + ' has dependencies outside current selection to '+ item.get('FormattedID')});
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-            if (r.get('Successors').Count>0){
-//                debugger;
-            }
-        }
-
-    },
     
-    _hideDependencies: function(d) {          
-        gApp._dependenciesVisible = false;   //Due to async nature, we need to log this
-        if (d.dependencies) {
-            d.dependencies.select('link').attr("visibility","hidden");
-        }
-    },
-    
-    _toggleDependencies: function() {
-        if (gApp._dependenciesVisible){
-            gApp._showLinks();
-            gApp._hideDependencies();
-        } else {
-            gApp._hideLinks();
-            gApp._showDependencies();
-        }
-    },
     _nodeMouseOut: function(node, index,array){
         if (node.card) node.card.hide();
-        gApp._hideDependencies(node);
     },
 
     _nodeMouseOver: function(node,index,array) {
@@ -431,7 +368,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 node.card = card;
             }
             node.card.show();
-//            gApp._showDependencies(node);
         }
     },
 
@@ -479,7 +415,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 {
                     xtype: 'container',
                     itemId: 'leftCol',
-                    width: 700,
+                    width: 500,
                 },
                 // {
                 //     xtype: 'container',
@@ -489,7 +425,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 {
                     xtype: 'container',
                     itemId: 'rightCol',
-                    width: 500  //Leave 20 for scroll bar
+                    width: 700  //Leave 20 for scroll bar
                 }
             ],
             listeners: {
@@ -529,6 +465,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     }
                     //This is specific to customer. Features are used as RAIDs as well.
                     if ((this.record.self.ordinal === 1) && this.record.hasField('c_RAIDType')){
+                        var me = this;
                         var rai = this.down('#leftCol').add(
                             {
                                 xtype: 'rallypopoverchilditemslistview',
@@ -546,16 +483,42 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     columnCfgs : [
                                         'FormattedID',
                                         'Name',
-                                        'c_RAIDType',
+                                        {
+                                            text: 'RAID Type',
+                                            dataIndex: 'c_RAIDType',
+                                            minWidth: 80
+                                        },
                                         'c_RAIDSeverityCriticality',
                                         {
                                             text: 'RAG Status',
-                                            dataIndex: 'Project',  //Just so that the renderer gets called
-                                            minWidth: 80,
+                                            dataIndex: 'Release',  //Just so that a sorter gets called on column ordering
+                                            width: 60,
                                             renderer: function (value, metaData, record, rowIdx, colIdx, store) {
-                                                var retval = '';
-                                                    debugger;
-                                                return (retval);
+                                                var setColour = (record.get('c_RAIDType') === 'Risk') ?
+                                                        me.RISKColour : me.AIDColour;
+                                                
+                                                    return '<div ' + 
+                                                        'class="' + setColour(
+                                                                        record.get('c_RAIDSeverityCriticality'),
+                                                                        record.get('c_RISKProbabilityLevel'),
+                                                                        record.get('c_RAIDRequestStatus')   
+                                                                    ) + 
+                                                        '"' +
+                                                        '>&nbsp</div>';
+                                            },
+                                            listeners: {
+                                                mouseover: function(gridView,cell,rowIdx,cellIdx,event,record) { 
+//                                                    debugger;
+                                                    Ext.create('Rally.ui.tooltip.ToolTip' , {
+                                                            target: cell,
+                                                            html:   
+                                                            '<p>' + '   Severity: ' + record.get('c_RAIDSeverityCriticality') + '</p>' +
+                                                            '<p>' + 'Probability: ' + record.get('c_RISKProbabilityLevel') + '</p>' +
+                                                            '<p>' + '     Status: ' + record.get('c_RAIDRequestStatus') + '</p>' 
+                                                        });
+                                                    
+                                                    return true;    //Continue processing for popover
+                                                }
                                             }
                                         },
                                         'ScheduleState'
@@ -566,7 +529,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         );
                         rai.down('#header').destroy();
                    }
-                    var children = this.down('#leftCol').add(
+                    var children = this.down('#rightCol').add(
                         {
                             xtype: 'rallypopoverchilditemslistview',
                             target: array[index],
@@ -609,8 +572,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     },
                                     'State',
                                     'PredecessorsAndSuccessors',
-                                    'Project',
-                                    'c_RAGSatus',
                                     'ScheduleState'
                                 ]
                             },
@@ -625,73 +586,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     });
                     cfd.generateChart();
 
-                    //Now add predecessors and successors
-                //     var preds = this.down('#rightCol').add(
-                //         {
-                //             xtype: 'rallypopoverchilditemslistview',
-                //             target: array[index],
-                //             record: this.record,
-                //             childField: 'Predecessors',
-                //             addNewConfig: null,
-                //             gridConfig: {
-                //                 title: '<b>Predecessors:</b>',
-                //                 enableEditing: false,
-                //                 enableRanking: false,
-                //                 enableBulkEdit: false,
-                //                 showRowActionsColumn: false,
-                //                 columnCfgs : [
-                //                 'FormattedID',
-                //                 'Name',
-                //                 {
-                //                     text: '% By Count',
-                //                     dataIndex: 'PercentDoneByStoryCount'
-                //                 },
-                //                 {
-                //                     text: '% By Est',
-                //                     dataIndex: 'PercentDoneByStoryPlanEstimate'
-                //                 },
-                //                 'State',
-                //                 'c_RAGSatus',
-                //                 'ScheduleState'
-                //                 ]
-                //             },
-                //             model: this.model
-                //         }
-                //     );
-                //     preds.down('#header').destroy();
-                //     var succs = this.down('#rightCol').add(
-                //         {
-                //             xtype: 'rallypopoverchilditemslistview',
-                //             target: array[index],
-                //             record: this.record,
-                //             childField: 'Successors',
-                //             addNewConfig: null,
-                //             gridConfig: {
-                //                 title: '<b>Successors:</b>',
-                //                 enableEditing: false,
-                //                 enableRanking: false,
-                //                 enableBulkEdit: false,
-                //                 showRowActionsColumn: false,
-                //                 columnCfgs : [
-                //                 'FormattedID',
-                //                 'Name',
-                //                 {
-                //                     text: '% By Count',
-                //                     dataIndex: 'PercentDoneByStoryCount'
-                //                 },
-                //                 {
-                //                     text: '% By Est',
-                //                     dataIndex: 'PercentDoneByStoryPlanEstimate'
-                //                 },
-                //                 'State',
-                //                 'c_RAGSatus',
-                //                 'ScheduleState'
-                //                 ]
-                //             },
-                //             model: this.model
-                //         }
-                //     );
-                //     succs.down('#header').destroy();
                 }
             },
 
@@ -706,16 +600,19 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     operator: '=',
                                     value: ''
                                 },
-                                fetch: gApp.STORE_FETCH_FIELD_LIST
+                                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                                pageSize: 50
                             };
                         default:
                             return {
-                                fetch: gApp.STORE_FETCH_FIELD_LIST                                
+                                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                                pageSize: 50
                             };
                     }
                 }
                 else return {
-                    fetch: gApp.STORE_FETCH_FIELD_LIST                                                    
+                    fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    pageSize: 50                                                    
                 };
             },
 
@@ -729,10 +626,15 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                     property: 'c_RAIDType',
                                     operator: '!=',
                                     value: ''
-                                }]
+                                }],
+                                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                                pageSize: 50
                             };
                     }
-                else return {};
+                else return {
+                    fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    pageSize: 50
+                };
             },
 
             RISKColour: function(severity, probability, state) {
@@ -740,23 +642,23 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     return 'RAID-blue';
                 }
 
-                if (state === 'Exceptional') {
+                if (severity === 'Exceptional') {
                     return 'RAID-red textBlink';
                 }
 
-                if (state ==='High' && (probability === 'Likely' || probability === 'Certain'))
+                if (severity ==='High' && (probability === 'Likely' || probability === 'Certain'))
                 {
                     return 'RAID-red';
                 }
 
                 if (
-                    (state ==='High' && (probability === 'Unlikely' || probability === 'Possible')) ||
+                    (severity ==='High' && (probability === 'Unlikely' || probability === 'Possible')) ||
                     (state ==='Moderate' && (probability === 'Likely' || probability === 'Certain'))
                 ){
                     return 'RAID-amber';
                 }
                 if (
-                    (state ==='Moderate' && (probability === 'Unlikely' || probability === 'Possible')) ||
+                    (severity ==='Moderate' && (probability === 'Unlikely' || probability === 'Possible')) ||
                     (state ==='Low')
                 ){
                     return 'RAID-green';
@@ -774,21 +676,22 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     return 'RAID-blue';
                 }
 
-                if (state === 'Exceptional') 
+                if (severity === 'Exceptional') 
                 {
                     return 'RAID-red';
                 }
 
-                if (state === 'High') 
+                if (severity === 'High') 
                 {
                     return 'RAID-amber';
                 }
 
-                if ((state === 'Moderate') ||
-                    (state === 'Low')
+                if ((severity === 'Moderate') ||
+                    (severity === 'Low')
                 ){
                     return 'RAID-green';                    
                 }
+                return 'RAID-missing-severity-probability'; //Mark as unknown
             }
         });
     },
@@ -828,18 +731,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             ]
         };
         
-        if (this.getSetting('showDependencies')){
-            hdrBoxConfig.items.push(
-                {
-                    xtype: 'rallybutton',
-                    text: 'Toggle Dependencies',
-                    handler: function() {
-                        gApp._toggleDependencies();
-                    }
-                }
-            );
-        }   
-
         var hdrBox = this.insert (0,hdrBoxConfig);
         
     },
@@ -1025,7 +916,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             }
         });   
 
-        Ext.util.Observable.capture( is, function(event) { console.log('event', event, arguments);});
+//        Ext.util.Observable.capture( is, function(event) { console.log('event', event, arguments);});
         if(gApp.getSetting('showFilter') && !gApp.down('#inlineFilter')){
             hdrBox.add({
                 xtype: 'rallyinlinefiltercontrol',
@@ -1133,7 +1024,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
     _getArtifacts: function(data) {
         //On re-entry send an event to redraw
-console.log( ' Adding: ', data);
         gApp._nodes = gApp._nodes.concat( gApp._createNodes(data));    //Add what we started with to the node list
 
         this.fireEvent('redrawTree');
@@ -1169,16 +1059,6 @@ console.log( ' Adding: ', data);
                             collectionConfig.filters.push(filter);
                         });
                     }
-
-                    // if (gApp.getSetting('showDependencies') ) {
-                    //     collectionConfig.filters.push(
-                    //         {
-                    //             property: 'PredecessorsAndSuccessors.Count',
-                    //             operator: '!=',
-                    //             value: false
-                    //         }
-                    //     )
-                    // }
 
                     //Can only do releases and milestones, not interations
                     if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') ||
@@ -1331,34 +1211,5 @@ console.log( ' Adding: ', data);
         this.addEvents('redrawTree');
     },
 
-    _initialiseD3: function() {
-        d3.selection.prototype.addPredecessors = function  (nodes) {
-            return this.each(function(node, index, array) {
-                var record = node.data.record;
-                if (record.data.ObjectID && record.get('Predecessors').Count) {    //Only real ones have this
-                    record.getCollection('Predecessors').load().then({
-                        success: function(preds) {
-                            _.each(preds, function(pred){
-                                var pn = _.find(nodes.nodes, function(d) {
-                                    return d.data.record && (d.data.record.data._ref === pred.get('_ref'));
-                                });
-                                pn.append("path")
-                                    .attr("class", "predecessor--link")
-                                    .attr("d", function(d) {
-                                        return "M" + d.y + "," + d.x +
-                                             "S" + (d.y - 100) + "," + d.x + ((d.x - node.x)/2) +
-                                             " " + node.y + "," + node.x;
-                                });
-
-                            });
-                        },
-                        failure: function(error) {
-//                            debugger;
-                        }
-                    });
-                }
-            });
-        };
-    }
 });
 }());

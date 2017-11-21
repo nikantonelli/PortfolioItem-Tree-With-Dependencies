@@ -80,23 +80,35 @@
 }
 
 .RAID-blue {
-  fill: #2020FF;
+  border-radius: 10px;
+  border: 2px solid black;
+  height: 20px;
+  width: 20px;
+  background-color: #145FAC;
 }
 
 .RAID-red {
-  fill: #FF2020;
+  border-radius: 10px;
+  border: 2px solid black;
+  height: 20px;
+  width: 20px;
+  background-color: #ff005c;
 }
 
 .RAID-amber {
-  fill: #FF9020;
+  border-radius: 10px;
+  border: 2px solid black;
+  background-color: #f3ca5e;
+  height: 20px;
+  width: 20px;
 }
 
 .RAID-green {
-  fill: #20FF40;
-}
-
-.RAID-missing RAID-missing-severity RAID-missing-probability RAID-missing-severity-probability {
-  fill: #000000;
+  border-radius: 10px;
+  border: 2px solid black;
+  height: 20px;
+  width: 20px;
+  background: #b3ee01;
 }
 
 .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
@@ -120,4 +132,32 @@
 .textBlink {
   animation: textBlink 1s step-start 0s infinite;
   -webkit-animation: textBlink 1s step-start 0s infinite;
+}
+
+.RAID-missing-severity {
+  border-radius: 10px;
+  border: 2px solid red;
+  height: 20px;
+  width: 20px;
+  background-color: white;
+  background: linear-gradient(#ffffff 50%, #ff0000 50%);
+  background-size: 20% 100%;
+  background-repeat: repeat-x;
+}
+.RAID-missing-probability {
+  border-radius: 10px;
+  border: 2px solid red;
+  height: 20px;
+  width: 20px;
+  background-color: white;
+  background: linear-gradient(#ff0000 50%, #ffffff 50%);
+  background-size: 20% 100%;
+  background-repeat: repeat-x;
+}
+.RAID-missing-severity-probability {
+  border-radius: 10px;
+  border: 2px solid red;
+  height: 20px;
+  width: 20px;
+  background-color: white;
 }
