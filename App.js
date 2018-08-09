@@ -417,11 +417,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     itemId: 'leftCol',
                     width: 500,
                 },
-                // {
-                //     xtype: 'container',
-                //     itemId: 'middleCol',
-                //     width: 400
-                // },
                 {
                     xtype: 'container',
                     itemId: 'rightCol',
@@ -488,7 +483,6 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                             dataIndex: 'c_RAIDType',
                                             minWidth: 80
                                         },
-                                        'c_RAIDSeverityCriticality',
                                         {
                                             text: 'RAG Status',
                                             dataIndex: 'Release',  //Just so that a sorter gets called on column ordering
@@ -508,7 +502,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                             },
                                             listeners: {
                                                 mouseover: function(gridView,cell,rowIdx,cellIdx,event,record) { 
-//                                                    debugger;
+                                                    debugger;
                                                     Ext.create('Rally.ui.tooltip.ToolTip' , {
                                                             target: cell,
                                                             html:   
@@ -534,6 +528,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                             xtype: 'rallypopoverchilditemslistview',
                             target: array[index],
                             record: this.record,
+                            width: '95%',
                             childField: this.childField,
                             addNewConfig: null,
                             gridConfig: {
@@ -582,6 +577,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
                     var cfd = Ext.create('Rally.apps.CFDChart', {
                         record: this.record,
+                        width: '95%',
                         container: this.down('#rightCol')
                     });
                     cfd.generateChart();
@@ -653,13 +649,13 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
                 if (
                     (severity ==='High' && (probability === 'Unlikely' || probability === 'Possible')) ||
-                    (state ==='Moderate' && (probability === 'Likely' || probability === 'Certain'))
+                    (severity ==='Moderate' && (probability === 'Likely' || probability === 'Certain'))
                 ){
                     return 'RAID-amber';
                 }
                 if (
                     (severity ==='Moderate' && (probability === 'Unlikely' || probability === 'Possible')) ||
-                    (state ==='Low')
+                    (severity ==='Low')
                 ){
                     return 'RAID-green';
                 }
