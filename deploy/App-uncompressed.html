@@ -3,7 +3,7 @@
 <head>
     <title>My Portfolio Item Tree</title>
 
-    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+    <script type="text/javascript" src="/apps/2.1/sdk-debug.js"></script>
 
     <script type="text/javascript">
         Rally.onReady(function () {
@@ -19,7 +19,8 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             keepTypesAligned: true,
             hideArchived: true,
             showFilter: true,
-            allowMultiSelect: false
+            allowMultiSelect: false,
+            useColour: false
         }
     },
     getSettingsFields: function() {
@@ -52,6 +53,12 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Show Advanced filter',
             name: 'showFilter',
+            labelAlign: 'top'
+        },
+        {
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Use DisplayColor',
+            name: 'useColour',
             labelAlign: 'top'
         }
         ];
@@ -216,6 +223,27 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         gApp.tree = tree;
         gApp._refreshTree();
     },
+
+    _getColourFromModel: function(record)
+    {
+        var theStore = null;
+
+         //We can find the original type that the state Store is from by looking into the value of the filters
+        _.each(gApp.stateStores, function(store) {
+            if (store.modelType.type == record.get('_type')){
+                theStore = store;
+            }
+        });
+        if (theStore) {
+            return theStore.findBy( function(theState) {    //Get the index of the store from the State Name
+                return theState.get('Name') == record.get('State').Name;
+            });
+        }
+        else {
+            return 0;
+        }
+    },
+    
     _refreshTree: function(){
         var g = d3.select('#tree');
         var nodetree = gApp._nodeTree;
@@ -237,26 +265,40 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
         //We're going to set the colour of the dot depndent on some criteria (in this case only  'State'
-        node.append("circle")
-            .attr("r", gApp.NODE_CIRCLE_SIZE)
-            .attr("class", function (d) {   //Work out the individual dot colour
-                var lClass = "dotOutline"; // Might want to use outline to indicate something later
+        if (gApp.getSetting('useColour') ) {
+            node.append("circle")
+                .attr("r", gApp.NODE_CIRCLE_SIZE)
+                .attr("class", "dotOutline")
+                .style("fill", function(d) {
+                    return d.data.record.get('DisplayColor');
+                })
+                .on("click", function(node, index, array) { gApp._nodeClick(node,index,array);})
+                .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
+                .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);});
+        }
+        else {
+            node.append("circle")
+                .attr("r", gApp.NODE_CIRCLE_SIZE)
+                .attr("class", function (d) {   //Work out the individual dot colour
+                    var lClass = "dotOutline"; // Might want to use outline to indicate something later
 
-                if (d.data.record.data._ref !== 'root') {
-                    if (d.data.record.get('PredecessorsAndSuccessors') && d.data.record.get('PredecessorsAndSuccessors').Count > 0) lClass = "gotDependencies";
-                    if (d.data.record.data.ObjectID){
-                        if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
-                        lClass +=  ' q' + ((d.data.record.get('State').OrderIndex-1) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]); 
-                        lClass += gApp._dataCheckForItem(d);
-                    } else {
-                        return d.data.error ? "error--node": "no--errors--done";
+                    if (d.data.record.data._ref !== 'root') {
+                        if (d.data.record.get('PredecessorsAndSuccessors') && d.data.record.get('PredecessorsAndSuccessors').Count > 0) lClass = "gotDependencies";
+                        if (d.data.record.data.ObjectID){
+                            if (!d.data.record.get('State')) return "error--node";      //Not been set - which is an error in itself
+                            lClass +=  ' q' + gApp._getColourFromModel(d.data.record) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))];
+                            //lClass +=  ' q' + ((d.data.record.get('State').index) + '-' + gApp.numStates[gApp._getOrdFromModel(d.data.record.get('_type'))]);
+                                     lClass += gApp._dataCheckForItem(d);
+                        } else {
+                            return d.data.error ? "error--node": "no--errors--done";
+                        }
                     }
-                }
-                return lClass;
-            })
-            .on("click", function(node, index, array) { gApp._nodeClick(node,index,array);})
-            .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
-            .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);});
+                    return lClass;
+                })
+                .on("click", function(node, index, array) { gApp._nodeClick(node,index,array);})
+                .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
+                .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);});
+        }
 
         node.append("text")
               .attr("dy", 3)
@@ -295,7 +337,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                                 }
                             },
                             failure: function(error) {
-                                debugger;
+                                console.log('Failed to get dependencies for: ' + d.data.record.get('FormattedID'));
                             }
                         });
                     }
@@ -380,13 +422,18 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
         }
     },
 
-    _nodePopup: function(node, index, array) {
-        var popover = Ext.create('Rally.ui.popover.DependenciesPopover',
-            {
-                record: node.data.record,
-                target: node.card.el
-            }
-        );
+    _nodePopup: function(node) {
+        if (node.data.record.get('PredecessorsAndSuccessors')) {
+            Ext.create('Rally.ui.popover.DependenciesPopover',
+                {
+                    record: node.data.record,
+                    target: node.card.el
+                }
+            );
+        }
+        else {
+            Rally.ui.notify.Notifier.show({message: 'No dependencies available for "' + node.data.record.get('FormattedID') + ": " + node.data.record.get('Name') + '"'});
+        }
     },
 
     _nodeClick: function (node,index,array) {
@@ -740,6 +787,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
     },
 
     numStates: [],
+    stateStores: [],
     colourBoxSize: null,
 
     _addColourHelper: function() {
@@ -767,13 +815,13 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",10)");
         //Add some legend specific sprites here
 
-        _.each(modelList, function(modeltype) {
-            gApp._addColourBox(modeltype);
+        _.each(modelList, function(modeltype,idx) {
+            gApp._addColourBox(modeltype,idx);
         });
 
     },
 
-    _addColourBox: function(modeltype) {
+    _addColourBox: function(modeltype, modelNum) {
 //        var colourBox = d3.select('#colourLegend' + modelNum);
         
         var colours = d3.select('#colourLegend');
@@ -795,7 +843,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
 
             //Now fetch all the values for the State field
             //And then add the colours
-            var typeStore = Ext.create('Rally.data.wsapi.Store',
+            var stateStore = Ext.create('Rally.data.wsapi.Store',
                 {
                     model: 'State',
                     filters: [{
@@ -807,30 +855,34 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                         value: true
                     }],
                     context: gApp.getContext().getDataContext(),
-                    fetch: true
+                    fetch: true,
+                    modelType: modeltype
                 }
             );
-            typeStore.load().then({ 
+            stateStore.load().then({ 
                 success: function(records){
-                    gApp.numStates[modeltype.Ordinal] = records.length;
+                    gApp.numStates[modelNum] = _.max(_.pluck(records, function( record) {
+                        return record.get('OrderIndex');}
+                    ));
                     _.each(records, function(state){
                         var idx = state.get('OrderIndex');
                         colourBox.append("circle")
                             .attr("cx", 0)
-                            .attr("cy", idx * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
+                            .attr("cy", state.index * gApp.MIN_ROW_HEIGHT)    //Leave space for text of name
                             .attr("r", gApp.NODE_CIRCLE_SIZE)
-                            .attr("class", "q" + (state.get('OrderIndex')-1) + '-' + records.length);
+                            .attr("class", "q" + (state.index) + '-' + gApp.numStates[modelNum]);
                         colourBox.append("text")
                             .attr("dx", gApp.NODE_CIRCLE_SIZE+2)
                             .attr("dy", gApp.NODE_CIRCLE_SIZE/2)
                             .attr("x",0)
-                            .attr("y",idx * gApp.MIN_ROW_HEIGHT)
+                            .attr("y",state.index * gApp.MIN_ROW_HEIGHT)
                             .attr("text-anchor", 'start')
                             .text(state.get('Name'));
                     });
+                    gApp.stateStores.push(stateStore);
                 },
                 failure: function(error) {
-                    debugger;
+                    console.log('Failed to load State info for type');
                 }
             });
         
@@ -897,7 +949,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                 //     this.startAgain(selector,this.valueModels);
                 // },
                 change: function(selector,records) {
-                    if (records.length > 0) {
+                    if (records && (records.length > 0)) {
                         gApp._resetTimer(this.startAgain);
                     }
                 }
@@ -905,7 +957,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             startAgain: function () {
                 var records = gApp.down('#itemSelector').valueModels;
                 if ( gApp._nodes) gApp._nodes = [];
-                if (records.length > 1) {
+                if (records && (records.length > 1)) {
                         gApp._nodes.push({'Name': 'Combined View',
                         'record': {
                             'data': {
@@ -950,28 +1002,30 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
             });
         }
 
-        var buttonTxt = "Colour Codes";
-        if (!gApp.down('#colourButton')){
-            hdrBox.add({
-                xtype: 'rallybutton',
-                itemId: 'colourButton',
-                margin: '10 0 5 20',
-                ticked: false,
-                text: buttonTxt,
-                handler: function() {
-                    if (this.ticked === false) {
-                        this.setText('Return');
-                        this.ticked = true;
-                        d3.select("#colourLegend").attr("visibility","visible");
-                        d3.select("#tree").attr("visibility", "hidden");
-                    } else {
-                        this.setText(buttonTxt);
-                        this.ticked = false;
-                        d3.select("#colourLegend").attr("visibility","hidden");
-                        d3.select("#tree").attr("visibility", "visible");
+        if (!gApp.getSetting('useColour')) {
+            var buttonTxt = "Colour Codes";
+            if (!gApp.down('#colourButton')){
+                hdrBox.add({
+                    xtype: 'rallybutton',
+                    itemId: 'colourButton',
+                    margin: '10 0 5 20',
+                    ticked: false,
+                    text: buttonTxt,
+                    handler: function() {
+                        if (this.ticked === false) {
+                            this.setText('Return');
+                            this.ticked = true;
+                            d3.select("#colourLegend").attr("visibility","visible");
+                            d3.select("#tree").attr("visibility", "hidden");
+                        } else {
+                            this.setText(buttonTxt);
+                            this.ticked = false;
+                            d3.select("#colourLegend").attr("visibility","hidden");
+                            d3.select("#tree").attr("visibility", "visible");
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         if (!gApp.down('#infoButton')){
@@ -1045,7 +1099,7 @@ Ext.define('Rally.apps.PortfolioItemTree.app', {
                     fetch: gApp.STORE_FETCH_FIELD_LIST,
                     callback: function(records, operation, success) {
                         //Start the recursive trawl down through the levels
-                        if (success && records.length)  gApp._getArtifacts(records);
+                        if (success && records && records.length)  gApp._getArtifacts(records);
                     },
                     filters: []
                 };
